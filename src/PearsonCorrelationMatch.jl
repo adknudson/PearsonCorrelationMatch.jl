@@ -8,11 +8,6 @@ using StatsFuns: sqrt2, invπ
 
 const invsqrtπ = sqrt(invπ)
 
-using Reexport
-@reexport using Distributions
-
-using PrecompileTools
-
 
 export pearson_bounds, pearson_match
 
@@ -22,6 +17,10 @@ include("pearson_bounds.jl")
 include("pearson_match.jl")
 
 
+using Reexport
+@reexport using Distributions
+
+using PrecompileTools
 @setup_workload begin
     p = 0.5
     D = Gamma()

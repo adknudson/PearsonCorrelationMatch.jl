@@ -1,9 +1,13 @@
 function _generate_coefs(F::UnivariateDistribution, n::Int)
     t, w = gausshermite(2n)
     t *= sqrt2
+
     u = normcdf.(t)
+    # If u[i] is 0 or 1, then quantile(F, u[i]) has the potential to be ±∞
+    # I apply a small correction here to ensure that the values are real (not infinite)
     u = max.(u, eps())
     u = min.(u, prevfloat(1.0))
+    
     X = quantile.(F, u)
     
     a = zeros(Float64, n + 1)
@@ -19,7 +23,7 @@ end
 _generate_coefs(F::UnivariateDistribution, n) = _generate_coefs(F, Int(n))
 
 
-function Gn0d(n::Int, 
+function _Gn0d(n::Int, 
     A::AbstractVector{Int}, 
     B::AbstractVector{Int}, 
     a::AbstractVector{Float64},
@@ -46,7 +50,7 @@ function Gn0d(n::Int,
 end
 
 
-function Gn0m(n::Int,
+function _Gn0m(n::Int,
     A::AbstractVector{Int},
     a::AbstractVector{Float64},
     F::UnivariateDistribution,
@@ -90,7 +94,7 @@ function _hermite(x::Float64, k::Int)
         Hkm1, Hk = Hk, Hkp1
     end
     
-    Hkp1
+    return Hkp1
 end
 _hermite(x, n) = _hermite(float(x), Int(n))
 

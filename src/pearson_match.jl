@@ -1,4 +1,9 @@
-function pearson_match(p::Float64, 
+"""
+    pearson_match(p::Float64, D1::UnivariateDistribution, D2::UnivariateDistribution, n::Int=7)
+
+Compute the pearson correlation coefficient to be used in a bivariate Gaussian copula.
+"""
+function pearson_match(p::Float64,
     D1::UnivariateDistribution,
     D2::UnivariateDistribution,
     n::Int=7)
@@ -31,11 +36,8 @@ function _match(p::Float64,
     end
     coef[1] = c1 * c2 + c2 * a[1] * b[1] - p
     
-    # find all real roots in the interval [-1, 1]
-    xs = _real_roots(coef)
-    filter!(x -> abs(x) ≤ 1, xs)
-
-    return _best_root(xs)
+    xs = _feasible_roots(coef)
+    return _best_root(p, xs)
 end
 
 function _match(p::Float64, 
@@ -65,15 +67,12 @@ function _match(p::Float64,
 
     coef = zeros(Float64, n+1)
     for k in 1:n
-        coef[k + 1] = Gn0d(k, A, B, a, b, c2) / factorial(k)
+        coef[k + 1] = _Gn0d(k, A, B, a, b, c2) / factorial(k)
     end
     coef[1] = -p
 
-    # find all real roots in the interval [-1, 1]
-    xs = _real_roots(coef)
-    filter!(x -> abs(x) ≤ 1, xs)
-
-    return _best_root(xs)
+    xs = _feasible_roots(coef)
+    return _best_root(p, xs)
 end
 
 function _match(p::Float64, 
@@ -94,15 +93,12 @@ function _match(p::Float64,
 
     coef = zeros(Float64, n+1)
     for k in 1:n
-        coef[k+1] = Gn0m(k, A, a, D2, c2) / factorial(k)
+        coef[k+1] = _Gn0m(k, A, a, D2, c2) / factorial(k)
     end
     coef[1] = -p
 
-    # find all real roots in the interval [-1, 1]
-    xs = _real_roots(coef)
-    filter!(x -> abs(x) ≤ 1, xs)
-
-    return _best_root(xs)
+    xs = _feasible_roots(coef)
+    return _best_root(p, xs)
 end
 
 function _match(p::Float64, 
@@ -113,18 +109,56 @@ function _match(p::Float64,
 end
 
 
+"""
+    _real_roots(polynomial)
 
-function _real_roots(coefs)
-    xs = roots(coefs)
-    filter!(isreal, xs)
-    xs = real.(xs)
+Find the real and unique roots of ``polynomial``.
+
+- ``polynomial`` is a vector of coefficients in ascending order of degree.
+"""
+function _real_roots(polynomial)
+    complex_roots = roots(polynomial)
+    filter!(isreal, complex_roots)
+    xs = real.(complex_roots)
     unique!(xs)
     return xs
 end
 
-_nearest_root(p, xs) = xs[argmin(abs.(xs .- p))]
 
-function _best_root(xs)
+"""
+    _feasible_roots(polynomial)
+
+Find all real roots of ``polynomial`` that are in the interval `[-1, 1]`.
+
+- ``polynomial`` is a vector of coefficients in ascending order of degree.
+"""
+function _feasible_roots(polynomial)
+    xs = _real_roots(polynomial)
+    filter!(x -> abs(x) ≤ 1, xs)
+    return xs
+end
+
+
+"""
+    _nearest_root(x, xs)
+
+Find the root closest to the target value, ``x``.
+
+- ``x`` is the target value
+- ``xs`` is the vector of real roots
+"""
+_nearest_root(x, xs) = xs[argmin(abs.(xs .- x))]
+
+
+"""
+    _best_root(p, xs)
+
+Consider the feasible roots and return a value.
+
+- ``p`` is the target correlation
+- ``xs`` is a vector of feasible roots
+"""
+function _best_root(p, xs)
     # if there is only one root, then we can return it
     length(xs) == 1 && return first(xs)
     

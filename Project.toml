@@ -1,0 +1,22 @@
+name = "PearsonCorrelationMatch"
+uuid = "a9b75987-8b2a-4819-9442-b884e853de6b"
+authors = ["adknudson <alexk.706@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+FastGaussQuadrature = "442a2c76-b920-505d-bb47-c5924d526838"
+PolynomialRoots = "3a141323-8675-5d76-9d11-e1df1406c778"
+PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
+Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
+StatsFuns = "4c63d2b9-4356-54db-8cca-17b64c39e42c"
+
+[compat]
+julia = "1.6, 1.7, 1.8, 1.9"
+PrecompileTools = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]

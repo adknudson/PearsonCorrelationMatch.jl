@@ -31,11 +31,14 @@ include("pearson_match.jl")
 
     @compile_workload begin
         pearson_bounds(D, E)
+        pearson_bounds(D, F)
+        pearson_bounds(G, D)
+        pearson_bounds(F, G)
 
         pearson_match(p, D, E)
         pearson_match(p, D, F)
-        pearson_match(p, F, G)
         pearson_match(p, G, D)
+        pearson_match(p, F, G)
     end
 end
 

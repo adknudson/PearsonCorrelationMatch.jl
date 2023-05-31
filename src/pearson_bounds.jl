@@ -14,7 +14,7 @@ function pearson_bounds(D1::UnivariateDistribution, D2::UnivariateDistribution, 
 
     c1 = -m1 * m2
     c2 = inv(s1 * s2)
-    kab = (a .* factorial.(k)) .* b
+    kab = a .* factorial.(k) .* b
 
     pl = c1 * c2 + c2 * sum((-1).^k .* kab)
     pu = c1 * c2 + c2 * sum(kab)

@@ -11,7 +11,7 @@ function pearson_match(p::Float64,
     return _match(p, D1, D2, n)
 end
 
-pearson_match(p, D1, D2, n) = pearson_match(float(p), D1, D2, Int(n))
+pearson_match(p, D1, D2, n) = pearson_match(Float64(p), D1, D2, Int(n))
 
 
 function _match(p::Float64, 
@@ -40,6 +40,7 @@ function _match(p::Float64,
     return _best_root(p, xs)
 end
 
+
 function _match(p::Float64, 
     D1::DiscreteUnivariateDistribution, 
     D2::DiscreteUnivariateDistribution, 
@@ -56,8 +57,8 @@ function _match(p::Float64,
     s1 = std(D1)
     s2 = std(D2)
 
-    A = min1:max1
-    B = min2:max2
+    A = Int(min1):Int(max1)
+    B = Int(min2):Int(max2)
 
     # z = Φ⁻¹[F(A)], α[0] = -Inf, β[0] = -Inf
     a = [-Inf; norminvcdf.(cdf.(D1, A))]
@@ -75,6 +76,7 @@ function _match(p::Float64,
     return _best_root(p, xs)
 end
 
+
 function _match(p::Float64, 
     D1::DiscreteUnivariateDistribution, 
     D2::ContinuousUnivariateDistribution, 
@@ -86,7 +88,7 @@ function _match(p::Float64,
     max1 = maximum(D1)
     max1 = isinf(max1) ? quantile(D1, prevfloat(1.0)) : max1
 
-    A = min1:max1
+    A = Int(min1):Int(max1)
     a = [-Inf; norminvcdf.(cdf.(D1, A))]
 
     c2 = inv(s1 * s2)
@@ -100,6 +102,7 @@ function _match(p::Float64,
     xs = _feasible_roots(coef)
     return _best_root(p, xs)
 end
+
 
 function _match(p::Float64, 
     D1::ContinuousUnivariateDistribution, 
@@ -147,7 +150,7 @@ Find the root closest to the target value, ``x``.
 - ``x`` is the target value
 - ``xs`` is the vector of real roots
 """
-_nearest_root(x, xs) = xs[argmin(abs.(xs .- x))]
+_nearest_root(x, xs) = argmin(y -> abs(x - y), xs)
 
 
 """

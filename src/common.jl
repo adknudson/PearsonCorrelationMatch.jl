@@ -84,6 +84,7 @@ end
 
 
 function _hermite(x::Float64, k::Int)
+    k  < 0 && throw(ArgumentError("`k` must be a non-negative integer."))
     k == 0 && return one(x)
     k == 1 && return x
 
@@ -96,7 +97,7 @@ function _hermite(x::Float64, k::Int)
     
     return Hkp1
 end
-_hermite(x, n) = _hermite(float(x), Int(n))
+_hermite(x, n) = _hermite(Float64(x), Int(n))
 
 _hermite_normpdf(x::Float64, n::Int) = isinf(x) ? zero(x) : _hermite(x, n) * normpdf(x)
-_hermite_normpdf(x, n) = _hermite_normpdf(float(x), Int(n))
+_hermite_normpdf(x, n) = _hermite_normpdf(Float64(x), Int(n))

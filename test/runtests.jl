@@ -28,7 +28,19 @@ using Polynomials
     end
 
     @testset "Hermite Evaluation" begin
-        
+        # must work with any number that can be converted to Float64, and any Int
+        @test_nowarn _hermite(3.15, 5)
+        @test_nowarn _hermite(3.15, 5.0)
+        @test_nowarn _hermite(3,    5)
+        @test_nowarn _hermite(3,    5.0)
+
+        @test_throws InexactError _hermite(3 + 4im, 5)
+        @test_throws InexactError _hermite(3.00, 5.5)
+        @test_throws ArgumentError _hermite(3.0, -2)
+
+        @test iszero(_hermite_normpdf( Inf, 10))
+        @test iszero(_hermite_normpdf(-Inf, 10))
+        @test 1.45182435 ≈ _hermite_normpdf(1.0, 5)
     end
 
     @testset "Solve Polynomial on [-1, 1]" begin
@@ -118,4 +130,40 @@ end
         @test  0.916 ≈ pearson_match( 0.9, dC, dA) atol=0.01
     end
 
+    @testset "Uniform-Uniform" begin
+        U = Uniform(0, 1)
+        pl, pu = pearson_bounds(U, U)
+        for p in range(pl, pu, 10)
+            @test pearson_match(p, U, U) ≈ 2 * sin(π * p / 6) atol=0.01
+        end
+    end
+
+    @testset "Uniform-Binomial" begin
+        U = Uniform(0, 1)
+        B = Binomial(1, 0.5)
+        # pl, pu = pearson_bounds(U, B)
+        pl, pu = -0.86602, 0.86602 # analytical bounds
+        for p in range(pl, pu, 10)
+            @test pearson_match(p, U, B, 9) ≈ sqrt(2) * sin(p * π / 2√3) atol=0.01
+        end
+    end
+
+    @testset "Uniform-Normal" begin
+        U = Uniform(0, 1)
+        N = Normal(0, 1)
+        pl, pu = pearson_bounds(U, N)
+        for p in range(pl, pu, 10)
+            @test pearson_match(p, U, N) ≈ sqrt(π/3) * p atol=0.01
+        end
+    end
+
+    @testset "Binomial-Normal" begin
+        B = Binomial(1, 0.5)
+        N = Normal(0, 1)
+        # pl, pu = pearson_bounds(B, N)
+        pl, pu = -inv(sqrt(π/2)), inv(sqrt(π/2)) # analytical bounds
+        for p in range(pl, pu, 10)
+            @test pearson_match(p, B, N) ≈ sqrt(π/2) * p atol=0.01
+        end
+    end
 end

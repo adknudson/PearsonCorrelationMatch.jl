@@ -1,8 +1,11 @@
 # PearsonCorrelationMatch
 
+[![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
+
 Determine the correlation coefficient for a bivariate Gaussian copula so that the resulting samples following a Normal-to-anything (NORTA) step have the desired correlation.
 
 This package is based on the paper by Xiao and Zhou, [Matching a correlation coefficient by a Gaussian copula](https://doi.org/10.1080/03610926.2018.1439962).
+
 
 ## Usage
 

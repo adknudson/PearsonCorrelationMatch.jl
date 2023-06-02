@@ -1,7 +1,12 @@
 using Test
+using Aqua
 using PearsonCorrelationMatch
 using PearsonCorrelationMatch: _generate_coefs, _hermite, _hermite_normpdf, _feasible_roots, _nearest_root
 using Polynomials
+
+
+Aqua.test_all(PearsonCorrelationMatch; ambiguities=false)
+Aqua.test_ambiguities(PearsonCorrelationMatch)
 
 
 @testset "Utilities" begin

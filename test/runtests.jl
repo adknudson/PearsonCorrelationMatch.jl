@@ -138,8 +138,8 @@ end
     @testset "Uniform-Uniform" begin
         U = Uniform(0, 1)
         pl, pu = pearson_bounds(U, U)
-        for p in range(pl, pu, 10)
-            @test pearson_match(p, U, U) ≈ 2 * sin(π * p / 6) atol=0.01
+        for p in range(pl, pu; length=10)
+            @test pearson_match(p, U, U) ≈ 2 * sinpi(p / 6) atol=0.01
         end
     end
 
@@ -148,8 +148,8 @@ end
         B = Binomial(1, 0.5)
         # pl, pu = pearson_bounds(U, B)
         pl, pu = -0.86602, 0.86602 # analytical bounds
-        for p in range(pl, pu, 10)
-            @test pearson_match(p, U, B, 9) ≈ sqrt(2) * sin(p * π / 2√3) atol=0.01
+        for p in range(pl, pu; length=10)
+            @test pearson_match(p, U, B, 9) ≈ sqrt(2) * sinpi(p / (2 * sqrt(3))) atol=0.01
         end
     end
 
@@ -157,7 +157,7 @@ end
         U = Uniform(0, 1)
         N = Normal(0, 1)
         pl, pu = pearson_bounds(U, N)
-        for p in range(pl, pu, 10)
+        for p in range(pl, pu; length=10)
             @test pearson_match(p, U, N) ≈ sqrt(π/3) * p atol=0.01
         end
     end
@@ -167,7 +167,7 @@ end
         N = Normal(0, 1)
         # pl, pu = pearson_bounds(B, N)
         pl, pu = -inv(sqrt(π/2)), inv(sqrt(π/2)) # analytical bounds
-        for p in range(pl, pu, 10)
+        for p in range(pl, pu; length=10)
             @test pearson_match(p, B, N) ≈ sqrt(π/2) * p atol=0.01
         end
     end

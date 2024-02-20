@@ -7,6 +7,16 @@ Determine the correlation coefficient for a bivariate Gaussian copula so that th
 This package is based on the paper by Xiao and Zhou, [Matching a correlation coefficient by a Gaussian copula](https://doi.org/10.1080/03610926.2018.1439962).
 
 
+## API
+
+Only two methods are exported:
+
+- `pearson_bounds`
+  - Determines the range of admissible Pearson correlations between two distributions
+- `pearson_match`
+  - Computes the Pearson correlation coefficient to be used in a bivariate Gaussian copula
+
+
 ## Usage
 
 ```julia
@@ -38,13 +48,16 @@ cor(X1, X2)
 # 0.40007047985609534
 ```
 
+
 ## Details
 
 It is highly recommended that any user of this package reads the reference paper first. The algorithm uses Gauss-Hermite polynomial interpolation to approximate the solution of the double integral. Target correlations near the Frechet bounds may be highly sensitive to the degree of the Hermite polynomial.
 
+
 ## Related Packages
 
 While this package focuses on the bivariate case, it can be used to compute the input correlations between all pairs of marginal distributions. However, the resulting adjusted correlation matrix may not be positive definite. In that case, you can use the [NearestCorrelationMatrix.jl](https://github.com/adknudson/NearestCorrelationMatrix.jl) library to fix the adjusted correlation matrix before applying the NORTA step.
+
 
 ## References
 

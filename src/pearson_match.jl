@@ -1,7 +1,7 @@
 """
     pearson_match(p::Real, d1::UnivariateDistribution, d2::UnivariateDistribution, n=7)
 
-Compute the pearson correlation coefficient to be used in a bivariate Gaussian copula.
+Compute the Pearson correlation coefficient to be used in a bivariate Gaussian copula.
 """
 function pearson_match(p::Real, d1::UnivariateDistribution, d2::UnivariateDistribution, n=21)
     -1 <= p <= 1 || throw(ArgumentError("`p` must be in [-1, 1]"))

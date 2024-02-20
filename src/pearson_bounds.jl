@@ -1,7 +1,7 @@
 """
     pearson_bounds(d1::UnivariateDistribution, d2::UnivariateDistribution, n::Int=10)
 
-Determine the range of admissible pearson correlations between two distributions.
+Determine the range of admissible Pearson correlations between two distributions.
 """
 function pearson_bounds(d1::UnivariateDistribution, d2::UnivariateDistribution, n::Int=32)
     m1 = mean(d1)

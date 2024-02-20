@@ -4,6 +4,7 @@ using PearsonCorrelationMatch: _generate_coefs, _Gn0d, _Gn0m
 using PearsonCorrelationMatch: _hermite, _hermite_normpdf
 using PearsonCorrelationMatch: _is_real, _real_roots, _feasible_roots, _nearest_root, _best_root
 using Polynomials: coeffs, fromroots
+using Distributions
 
 
 @testset "Internals" begin

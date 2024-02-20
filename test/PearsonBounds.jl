@@ -1,5 +1,6 @@
 using Test
 using PearsonCorrelationMatch
+using Distributions
 
 
 @testset "Pearson Correlation Bounds" begin

@@ -12,10 +12,6 @@ using NearestCorrelationMatrix
 export pearson_bounds, pearson_match
 
 
-using Reexport
-@reexport using Distributions
-
-
 include("common.jl")
 include("pearson_bounds.jl")
 include("pearson_match.jl")

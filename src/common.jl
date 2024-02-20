@@ -4,32 +4,33 @@ function _generate_coefs(F::UnivariateDistribution, n::Int)
 
     u = normcdf.(t)
     # If u[i] is 0 or 1, then quantile(F, u[i]) has the potential to be ±∞
-    # I apply a small correction here to ensure that the values are real (not infinite)
-    u = max.(u, eps())
-    u = min.(u, prevfloat(1.0))
-    
+    # I apply a small correction here to ensure that the values are finite
+    u = max.(u, eps(Float64))
+    u = min.(u, prevfloat(one(Float64)))
+
     X = quantile.(F, u)
-    
+
     a = zeros(Float64, n + 1)
     for i in eachindex(a)
         k = i - 1
         S = sum(w .* _hermite.(t, k) .* X)
 
-        @inbounds a[i] = invsqrtπ * S / factorial(k)
+        @inbounds a[i] = invsqrtπ * S / factorial(big(k))
     end
 
     return a
 end
-_generate_coefs(F::UnivariateDistribution, n) = _generate_coefs(F, Int(n))
 
 
-function _Gn0d(n::Int, 
-    A::AbstractVector{Int}, 
-    B::AbstractVector{Int}, 
+
+function _Gn0d(
+    n::Int,
+    A::AbstractVector{Int},
+    B::AbstractVector{Int},
     a::AbstractVector{Float64},
     b::AbstractVector{Float64},
-    invs1s2::Float64)
-
+    invs1s2::Float64
+)
     n == 0 && return zero(Float64)
 
     M = length(A)
@@ -50,12 +51,14 @@ function _Gn0d(n::Int,
 end
 
 
-function _Gn0m(n::Int,
+
+function _Gn0m(
+    n::Int,
     A::AbstractVector{Int},
     a::AbstractVector{Float64},
     F::UnivariateDistribution,
-    invs1s2::Float64)
-
+    invs1s2::Float64
+)
     n == 0 && return zero(Float64)
 
     M = length(A)
@@ -70,13 +73,15 @@ function _Gn0m(n::Int,
     t *= sqrt2
     u = normcdf.(t)
     u = max.(u, eps())
-    u = min.(u, prevfloat(1.0))
+    u = min.(u, prevfloat(one(Float64)))
     X = quantile.(F, u)
 
     S = zero(Float64)
+
     for k in eachindex(t)
         S += w[k] * _hermite(t[k], n) * X[k]
     end
+
     S *= invsqrtπ
 
     return -invs1s2 * accu * S
@@ -84,20 +89,109 @@ end
 
 
 function _hermite(x::Float64, k::Int)
-    k  < 0 && throw(ArgumentError("`k` must be a non-negative integer."))
     k == 0 && return one(x)
     k == 1 && return x
 
-    Hkp1, Hk, Hkm1 = zero(x), x, one(x)
+    Hk = x
+    Hkp1 = zero(x)
+    Hkm1 = one(x)
 
-    for k in 2:k
-        Hkp1 = x * Hk - (k - 1) * Hkm1
+    for j in 2:k
+        Hkp1 = x * Hk - (j - 1) * Hkm1
         Hkm1, Hk = Hk, Hkp1
     end
-    
+
     return Hkp1
 end
-_hermite(x, n) = _hermite(Float64(x), Int(n))
+
+_hermite(x::Real, k::Int) = _hermite(Float64(x), k)
 
 _hermite_normpdf(x::Float64, n::Int) = isinf(x) ? zero(x) : _hermite(x, n) * normpdf(x)
-_hermite_normpdf(x, n) = _hermite_normpdf(Float64(x), Int(n))
+_hermite_normpdf(x::Real, k::Int) = _hermite_normpdf(Float64(x), k)
+
+
+
+"""
+    _is_real(x::Complex)
+
+Check if a number is real within a given tolerance.
+"""
+_is_real(x::Complex{T}) where {T<:AbstractFloat} = abs(imag(x)) < _sqrteps(T)
+
+
+
+"""
+    _real_roots(polynomial)
+
+Find the real and unique roots of ``polynomial``.
+
+- ``polynomial`` is a vector of coefficients in ascending order of degree.
+"""
+function _real_roots(polynomial)
+    complex_roots = roots(polynomial)
+    filter!(_is_real, complex_roots)
+    xs = real.(complex_roots)
+    return unique!(xs)
+end
+
+
+
+"""
+    _sqrteps(T)
+
+Return the square root of machine precision for a given floating point type.
+"""
+_sqrteps(T::Type{<:AbstractFloat}) = sqrt(eps(T))
+_sqrteps() = _sqrteps(Float64)
+
+
+
+"""
+    _feasible_roots(polynomial)
+
+Find all real roots of ``polynomial`` that are in the interval `[-1, 1]`.
+
+- ``polynomial`` is a vector of coefficients in ascending order of degree.
+"""
+function _feasible_roots(polynomial)
+    xs = _real_roots(polynomial)
+    return filter!(x -> abs(x) ≤ 1.0 + _sqrteps(), xs)
+end
+
+
+
+"""
+    _nearest_root(target, xs)
+
+Find the root closest to the target value, ``x``.
+"""
+function _nearest_root(target, xs)
+    y = 0
+    m = Inf
+
+    for x in xs
+        f = abs(x - target)
+        if f < m
+            m = f
+            y = x
+        end
+    end
+
+    return y
+end
+
+
+
+"""
+    _best_root(p, xs)
+
+Consider the feasible roots and return a value.
+
+- ``p`` is the target correlation
+- ``xs`` is a vector of feasible roots
+"""
+function _best_root(p, xs)
+    length(xs) == 1 && return clamp(first(xs), -1, 1)
+    length(xs)  > 1 && return _nearest_root(p, xs)
+    return p < 0 ? nextfloat(-one(Float64)) : prevfloat(one(Float64))
+end

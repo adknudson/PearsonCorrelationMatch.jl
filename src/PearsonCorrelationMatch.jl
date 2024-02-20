@@ -4,21 +4,19 @@ using Distributions
 using FastGaussQuadrature: gausshermite
 using PolynomialRoots: roots
 using StatsFuns: normcdf, normpdf, norminvcdf
-using StatsFuns: sqrt2, invπ
-
-const invsqrtπ = sqrt(invπ)
+using IrrationalConstants: sqrt2, invsqrtπ
 
 
 export pearson_bounds, pearson_match
+
+using Reexport
+@reexport using Distributions
 
 
 include("common.jl")
 include("pearson_bounds.jl")
 include("pearson_match.jl")
 
-
-using Reexport
-@reexport using Distributions
 
 using PrecompileTools
 @setup_workload begin

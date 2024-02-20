@@ -1,18 +1,18 @@
 """
-    pearson_bounds(D1::UnivariateDistribution, D2::UnivariateDistribution, n::Int=10)
+    pearson_bounds(d1::UnivariateDistribution, d2::UnivariateDistribution, n::Int=10)
 
 Determine the range of admissible pearson correlations between two distributions.
 """
-function pearson_bounds(D1::UnivariateDistribution, D2::UnivariateDistribution, n::Int=10)
-    m1 = mean(D1)
-    m2 = mean(D2)
-    s1 = std(D1)
-    s2 = std(D2)
+function pearson_bounds(d1::UnivariateDistribution, d2::UnivariateDistribution, n::Int=32)
+    m1 = mean(d1)
+    m2 = mean(d2)
+    s1 = std(d1)
+    s2 = std(d2)
 
-    a = _generate_coefs(D1, n)
-    b = _generate_coefs(D2, n)
+    a = _generate_coefs(d1, n)
+    b = _generate_coefs(d2, n)
 
-    k = 0:1:n
+    k = big.(0:1:n)
 
     c1 = -m1 * m2
     c2 = inv(s1 * s2)
@@ -21,9 +21,8 @@ function pearson_bounds(D1::UnivariateDistribution, D2::UnivariateDistribution, 
     pl = c1 * c2 + c2 * sum((-1).^k .* kab)
     pu = c1 * c2 + c2 * sum(kab)
 
-    pl = min(max(pl, -1), 1)
-    pu = min(max(pu, -1), 1)
+    pl = clamp(pl, -1, 1)
+    pu = clamp(pu, -1, 1)
 
-    return (lower = pl, upper = pu)
+    return (lower = Float64(pl), upper = Float64(pu))
 end
-

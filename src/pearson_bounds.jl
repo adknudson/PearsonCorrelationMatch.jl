@@ -1,7 +1,18 @@
 """
-    pearson_bounds(d1::UnivariateDistribution, d2::UnivariateDistribution, n::Int=10)
+    pearson_bounds(d1::UnivariateDistribution, d2::UnivariateDistribution, n::Int)
 
 Determine the range of admissible Pearson correlations between two distributions.
+
+# Examples
+
+```julia-repl
+julia> using Distributions
+
+julia> d1 = Exponential(3.14); d2 = NegativeBinomial(20, 0.2);
+
+julia> pearson_bounds(d1, d2)
+(lower = -0.8553947509241561, upper = 0.9413665073003636)
+```
 """
 function pearson_bounds(d1::UnivariateDistribution, d2::UnivariateDistribution, n::Int=32)
     m1 = mean(d1)
@@ -28,6 +39,33 @@ function pearson_bounds(d1::UnivariateDistribution, d2::UnivariateDistribution, 
 end
 
 
+"""
+    pearson_bounds(margins::AbstractVector{<:UnivariateDistribution}, n::Int)
+
+Determine the range of admissible Pearson correlations pairwise between a list of distributions.
+
+# Examples
+
+```julia-repl
+julia> using Distributions
+
+julia> margins = [Exponential(3.14), NegativeBinomial(20, 0.2), LogNormal(2.718)];
+
+julia> lower, upper = pearson_bounds(margins);
+
+julia> lower
+3×3 Matrix{Float64}:
+  1.0       -0.855395  -0.488737
+ -0.855395   1.0       -0.704403
+ -0.488737  -0.704403   1.0
+
+julia> upper
+3×3 Matrix{Float64}:
+ 1.0       0.941367  0.939671
+ 0.941367  1.0       0.815171
+ 0.939671  0.815171  1.0
+```
+"""
 function pearson_bounds(margins::AbstractVector{<:UnivariateDistribution}, n::Int=32)
     d = length(margins)
 

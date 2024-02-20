@@ -1,7 +1,18 @@
 """
-    pearson_match(p::Real, d1::UnivariateDistribution, d2::UnivariateDistribution, n=7)
+    pearson_match(p::Real, d1::UnivariateDistribution, d2::UnivariateDistribution, n::Int)
 
 Compute the Pearson correlation coefficient to be used in a bivariate Gaussian copula.
+
+# Examples
+
+```julia-repl
+julia> using Distributions
+
+julia> d1 = Beta(2, 3); d2 = Binomial(20, 0.2);
+
+julia> pearson_match(0.6, d1, d2)
+0.6127531346934495
+```
 """
 function pearson_match(p::Real, d1::UnivariateDistribution, d2::UnivariateDistribution, n=21)
     -1 <= p <= 1 || throw(ArgumentError("`p` must be in [-1, 1]"))
@@ -116,10 +127,30 @@ end
 
 
 """
-    pearson_match(rho, margins, n=21)
+    pearson_match(rho::AbstractMatrix{<:Real}, margins::AbstractVector{<:UnivariateDistribution}, n::Int)
 
 Pairwise compute the Pearson correlation coefficient to be used in a bivariate Gaussian
 copula. Ensures that the resulting matrix is a valid correlation matrix.
+
+# Examples
+
+```julia-repl
+julia> using Distributions
+
+julia> margins = [Beta(2, 3), Uniform(0, 1), Binomial(20, 0.2)];
+
+julia> rho = [
+    1.0 0.3 0.6
+    0.3 1.0 0.4
+    0.6 0.4 1.0
+];
+
+julia> pearson_match(rho, margins)
+3×3 Matrix{Float64}:
+ 1.0       0.309111  0.612753
+ 0.309111  1.0       0.418761
+ 0.612753  0.418761  1.0
+```
 """
 function pearson_match(rho::AbstractMatrix{T}, margins::AbstractVector{<:UnivariateDistribution}, n=21) where {T<:Real}
     d = length(margins)

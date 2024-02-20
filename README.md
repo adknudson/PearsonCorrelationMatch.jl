@@ -20,7 +20,7 @@ Only two methods are exported:
 ## Usage
 
 ```julia
-using PearsonCorrelationMatch # also re-exports Distributions.jl
+using PearsonCorrelationMatch, Distributions
 using StatsFuns
 
 p = 0.4 # target correlation

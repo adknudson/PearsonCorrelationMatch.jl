@@ -112,3 +112,29 @@ function _pearson_match(
 )
     return _pearson_match(p, d2, d1, n)
 end
+
+
+
+"""
+    pearson_match(rho, margins, n=21)
+
+Pairwise compute the Pearson correlation coefficient to be used in a bivariate Gaussian
+copula. Ensures that the resulting matrix is a valid correlation matrix.
+"""
+function pearson_match(rho::AbstractMatrix{T}, margins::AbstractVector{<:UnivariateDistribution}, n=21) where {T<:Real}
+    d = length(margins)
+    r, s = size(rho)
+    (r == s == d) || throw(DimensionMismatch("The number of margins must be the same size as the correlation matrix."))
+
+    R = SharedMatrix{Float64}(d, d)
+
+    # Calculate the pearson matching pairs
+    Base.Threads.@threads for (i, j) in _idx_subsets2(d)
+        @inbounds R[i, j] = pearson_match(rho[i,j], margins[i], margins[j], n)
+    end
+
+    _symmetric!(R)
+    _set_diag1!(R)
+
+    return nearest_cor!(sdata(R), DirectProjection())
+end

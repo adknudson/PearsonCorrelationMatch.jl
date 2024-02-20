@@ -1,15 +1,17 @@
 name = "PearsonCorrelationMatch"
 uuid = "a9b75987-8b2a-4819-9442-b884e853de6b"
 authors = ["adknudson <alexk.706@gmail.com>"]
-version = "0.1.2"
+version = "0.2.0"
 
 [deps]
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 FastGaussQuadrature = "442a2c76-b920-505d-bb47-c5924d526838"
 IrrationalConstants = "92d709cd-6900-40b7-9082-c6be49f344b6"
+NearestCorrelationMatrix = "59ddf330-608c-4938-8bc9-a4ee97bbbea6"
 PolynomialRoots = "3a141323-8675-5d76-9d11-e1df1406c778"
 PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
+SharedArrays = "1a1011a3-84de-559e-8e89-a11a2f7dc383"
 StatsFuns = "4c63d2b9-4356-54db-8cca-17b64c39e42c"
 
 [compat]
@@ -17,11 +19,13 @@ Aqua = "0.8"
 Distributions = "0.25"
 FastGaussQuadrature = "0.5, 1"
 IrrationalConstants = "0.2"
+NearestCorrelationMatrix = "0.2"
 PolynomialRoots = "1"
 Polynomials = "4"
 PrecompileTools = "1"
 Reexport = "1"
 StatsFuns = "1"
+SharedArrays = "1"
 Test = "1"
 julia = "1.6, 1.7, 1.8, 1.9, 1.10"
 

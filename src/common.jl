@@ -195,3 +195,50 @@ function _best_root(p, xs)
     length(xs)  > 1 && return _nearest_root(p, xs)
     return p < 0 ? nextfloat(-one(Float64)) : prevfloat(one(Float64))
 end
+
+
+
+# equivalent to IterTools.subsets(1:d, Val(2)), but allocates for all elements
+function _idx_subsets2(d::Int)
+    n = d * (d - 1) ÷ 2
+    xs = Vector{Tuple}(undef, n)
+
+    k = 1
+    for i = 1:d-1
+        for j = i+1:d
+            xs[k] = (i,j)
+            k += 1
+        end
+    end
+
+    return xs
+end
+
+
+
+function _symmetric!(X::AbstractMatrix{T}) where {T}
+    m, n = size(X)
+    m == n || throw(DimensionMismatch("Input matrix must be square"))
+
+    for i = 1:n-1
+        for j = i+1:n
+            X[j,i] = X[i,j]
+        end
+    end
+
+    return X
+end
+
+
+
+# sets the diagonal elements of a square matrix to 1
+function _set_diag1!(X::AbstractMatrix{T}) where {T}
+    m, n = size(X)
+    m == n || throw(DimensionMismatch("Input matrix must be square"))
+
+    for i in 1:n
+        X[i,i] = one(T)
+    end
+
+    return X
+end

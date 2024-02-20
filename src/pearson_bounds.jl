@@ -26,3 +26,25 @@ function pearson_bounds(d1::UnivariateDistribution, d2::UnivariateDistribution, 
 
     return (lower = Float64(pl), upper = Float64(pu))
 end
+
+
+function pearson_bounds(margins::AbstractVector{<:UnivariateDistribution}, n::Int=32)
+    d = length(margins)
+
+    lower = SharedMatrix{Float64}(d, d)
+    upper = SharedMatrix{Float64}(d, d)
+
+    Base.Threads.@threads for (i,j) in _idx_subsets2(d)
+        l, u = pearson_bounds(margins[i], margins[j], n)
+        lower[i,j] = l
+        upper[i,j] = u
+    end
+
+    _symmetric!(lower)
+    _set_diag1!(lower)
+
+    _symmetric!(upper)
+    _set_diag1!(upper)
+
+    (lower = sdata(lower), upper = sdata(upper))
+end

@@ -14,7 +14,7 @@ julia> pearson_bounds(d1, d2)
 (lower = -0.8553947509241561, upper = 0.9413665073003636)
 ```
 """
-function pearson_bounds(d1::UnivariateDistribution, d2::UnivariateDistribution, n::Int=32)
+function pearson_bounds(d1::UD, d2::UD, n::Int=32)
     m1 = mean(d1)
     m2 = mean(d2)
     s1 = std(d1)
@@ -66,7 +66,7 @@ julia> upper
  0.939671  0.815171  1.0
 ```
 """
-function pearson_bounds(margins::AbstractVector{<:UnivariateDistribution}, n::Int=32)
+function pearson_bounds(margins::AbstractVector{<:UD}, n::Int=32)
     d = length(margins)
 
     lower = SharedMatrix{Float64}(d, d)

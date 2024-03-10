@@ -1,12 +1,16 @@
 module PearsonCorrelationMatch
 
-using Distributions
+using Distributions: UnivariateDistribution as UD
+using Distributions: ContinuousUnivariateDistribution as CUD
+using Distributions: DiscreteUnivariateDistribution as DUD
+using Distributions: mean, std, quantile, cdf
+
 using FastGaussQuadrature: gausshermite
 using IrrationalConstants: sqrt2, invsqrtπ
+using LinearAlgebra: eigen, Symmetric, Diagonal
 using PolynomialRoots: roots
-using SharedArrays
+using SharedArrays: SharedMatrix, sdata
 using StatsFuns: normcdf, normpdf, norminvcdf
-using NearestCorrelationMatrix
 
 
 export pearson_bounds, pearson_match
@@ -18,12 +22,14 @@ include("pearson_match.jl")
 
 
 using PrecompileTools
+using Distributions: Distributions
+
 @setup_workload begin
     p = 0.5
-    D = Gamma()
-    E = Beta(5, 3)
-    F = Binomial(100, 0.3)
-    G = NegativeBinomial(20)
+    D = Distributions.Gamma()
+    E = Distributions.Beta(5, 3)
+    F = Distributions.Binomial(100, 0.3)
+    G = Distributions.NegativeBinomial(20)
     margins = [D, E, F, G]
 
     @compile_workload begin

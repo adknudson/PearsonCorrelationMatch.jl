@@ -1,4 +1,4 @@
-function _generate_coefs(F::UnivariateDistribution, n::Int)
+function _generate_coefs(F::UD, n::Int)
     t, w = gausshermite(2n)
     t *= sqrt2
 
@@ -56,7 +56,7 @@ function _Gn0m(
     n::Int,
     A::AbstractVector{Int},
     a::AbstractVector{Float64},
-    F::UnivariateDistribution,
+    F::UD,
     invs1s2::Float64
 )
     n == 0 && return zero(Float64)
@@ -121,14 +121,14 @@ _is_real(x::Complex{T}) where {T<:AbstractFloat} = abs(imag(x)) < _sqrteps(T)
 
 
 """
-    _real_roots(polynomial)
+    _real_roots(coeffs)
 
 Find the real and unique roots of ``polynomial``.
 
 - ``polynomial`` is a vector of coefficients in ascending order of degree.
 """
-function _real_roots(polynomial)
-    complex_roots = roots(polynomial)
+function _real_roots(coeffs)
+    complex_roots = roots(coeffs)
     filter!(_is_real, complex_roots)
     xs = real.(complex_roots)
     return unique!(xs)
@@ -147,14 +147,14 @@ _sqrteps() = _sqrteps(Float64)
 
 
 """
-    _feasible_roots(polynomial)
+    _feasible_roots(coeffs)
 
 Find all real roots of ``polynomial`` that are in the interval `[-1, 1]`.
 
 - ``polynomial`` is a vector of coefficients in ascending order of degree.
 """
-function _feasible_roots(polynomial)
-    xs = _real_roots(polynomial)
+function _feasible_roots(coeffs)
+    xs = _real_roots(coeffs)
     return filter!(x -> abs(x) ≤ 1.0 + _sqrteps(), xs)
 end
 
@@ -240,5 +240,16 @@ function _set_diag1!(X::AbstractMatrix{T}) where {T}
         X[i,i] = one(T)
     end
 
+    return X
+end
+
+
+
+function _ensure_pd!(X::AbstractMatrix{T}, ϵ::T=eps(T)) where {T<:Real}
+    λ, P = eigen(Symmetric(X), sortby=x->-x)
+    ϵ = max(ϵ, eps(T))
+    D = Diagonal(max.(λ, ϵ))
+    X .= P * D * P'
+    _symmetric!(X)
     return X
 end

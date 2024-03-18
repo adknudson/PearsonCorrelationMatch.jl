@@ -74,15 +74,17 @@ function pearson_bounds(margins::AbstractVector{<:UD}, n::Int=32)
 
     Base.Threads.@threads for (i,j) in _idx_subsets2(d)
         l, u = pearson_bounds(margins[i], margins[j], n)
-        lower[i,j] = l
-        upper[i,j] = u
+        @inbounds lower[i,j] = l
+        @inbounds upper[i,j] = u
     end
 
-    _symmetric!(lower)
-    _set_diag1!(lower)
+    L, U = sdata(lower), sdata(upper)
 
-    _symmetric!(upper)
-    _set_diag1!(upper)
+    _symmetric!(L)
+    _set_diag1!(L)
 
-    (lower = sdata(lower), upper = sdata(upper))
+    _symmetric!(U)
+    _set_diag1!(U)
+
+    (lower = L, upper = U)
 end

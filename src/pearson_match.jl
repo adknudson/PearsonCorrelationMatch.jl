@@ -144,8 +144,12 @@ function pearson_match(rho::AbstractMatrix{T}, margins::AbstractVector{<:UD}, n=
         @inbounds R[i, j] = pearson_match(rho[i,j], margins[i], margins[j], n)
     end
 
-    _symmetric!(R)
-    _set_diag1!(R)
+    S = sdata(R)
 
-    return _ensure_pd!(sdata(R))
+    _symmetric!(S)
+    _set_diag1!(S)
+    _project_psd!(S)
+    _cov2cor!(S)
+
+    return S
 end

@@ -1,6 +1,7 @@
 using Test
 using PearsonCorrelationMatch
 using Distributions
+using LinearAlgebra: isposdef
 
 
 @testset "Pearson Correlation Matching" begin
@@ -103,5 +104,19 @@ using Distributions
         for p in range(pl, pu; length=10)
             @test pearson_match(p, B, N, 21) ≈ G(p) atol=0.005
         end
+    end
+
+    @testset "Match Correlation Matrix" begin
+        margins = (dA, dB, dC)
+
+        r0 = [
+             1.09 -0.59 0.68
+            -0.59  1.00 0.19
+             0.68  0.19 1.00
+        ]
+
+        r = pearson_match(r0, margins)
+
+        @test isposdef(r)
     end
 end

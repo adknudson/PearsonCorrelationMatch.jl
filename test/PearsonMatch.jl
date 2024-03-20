@@ -107,7 +107,7 @@ using LinearAlgebra: isposdef
     end
 
     @testset "Match Correlation Matrix" begin
-        margins = (dA, dB, dC)
+        margins = [dA, dB, dC]
 
         r0 = [
              1.09 -0.59 0.68

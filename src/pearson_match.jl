@@ -148,7 +148,7 @@ function pearson_match(rho::AbstractMatrix{T}, margins::AbstractVector{<:UD}, n=
 
     _symmetric!(S)
     _set_diag1!(S)
-    _project_psd!(S)
+    _project_psd!(S, sqrt(eps()))
     _cov2cor!(S)
 
     return S

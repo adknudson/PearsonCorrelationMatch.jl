@@ -1,4 +1,4 @@
-function _generate_coefs(F::UD, n::Int)
+function _generate_coefs(F, n)
     t, w = gausshermite(2n)
     t *= sqrt2
 
@@ -22,14 +22,7 @@ function _generate_coefs(F::UD, n::Int)
 end
 
 
-function _Gn0d(
-    n::Int,
-    A::AbstractVector{Int},
-    B::AbstractVector{Int},
-    a::AbstractVector{Float64},
-    b::AbstractVector{Float64},
-    invs1s2::Float64
-)
+function _Gn0d(n, A, B, a, b, invs1s2)
     n == 0 && return zero(Float64)
 
     M = length(A)
@@ -50,13 +43,7 @@ function _Gn0d(
 end
 
 
-function _Gn0m(
-    n::Int,
-    A::AbstractVector{Int},
-    a::AbstractVector{Float64},
-    F::UD,
-    invs1s2::Float64
-)
+function _Gn0m(n, A, a, F, invs1s2)
     n == 0 && return zero(Float64)
 
     M = length(A)
@@ -113,7 +100,7 @@ _hermite_normpdf(x::Real, k::Int) = _hermite_normpdf(Float64(x), k)
 
 Check if a number is real within a given tolerance.
 """
-_is_real(x::Complex{T}) where {T<:AbstractFloat} = abs(imag(x)) < _sqrteps(T)
+_is_real(x::Complex{T}) where T = abs(imag(x)) < _sqrteps(T)
 
 
 """
@@ -136,8 +123,8 @@ end
 
 Return the square root of machine precision for a given floating point type.
 """
-_sqrteps(T::Type{<:AbstractFloat}) = sqrt(eps(T))
-_sqrteps() = _sqrteps(Float64)
+_sqrteps(::Type{T}) where T = sqrt(eps(T))
+_sqrteps() = sqrt(eps())
 
 
 """
@@ -216,7 +203,7 @@ end
 
 Copy the upper part of a matrix to its lower half.
 """
-function _symmetric!(X::AbstractMatrix{T}) where {T}
+function _symmetric!(X::AbstractMatrix{T}) where T
     m, n = size(X)
     m == n || throw(DimensionMismatch("Input matrix must be square"))
 
@@ -235,7 +222,7 @@ end
 
 Set the diagonal elements of a square matrix to `1`.
 """
-function _set_diag1!(X::AbstractMatrix{T}) where {T}
+function _set_diag1!(X::AbstractMatrix{T}) where T
     m, n = size(X)
     m == n || throw(DimensionMismatch("Input matrix must be square"))
 
@@ -252,9 +239,8 @@ end
 
 Project `X` onto the set of PSD matrixes.
 """
-function _project_psd!(X::AbstractMatrix{T}, ϵ::T=eps(T)) where {T<:Real}
+function _project_psd!(X, ϵ)
     λ, P = eigen(Symmetric(X), sortby=x->-x)
-    ϵ = max(ϵ, eps(T))
     replace!(x -> max(x, ϵ), λ)
     X .= P * Diagonal(λ) * P'
     return X
@@ -266,7 +252,7 @@ end
 
 Project `X` onto the set of correlation matrices.
 """
-function _cov2cor!(X::AbstractMatrix{T}) where {T<:Real}
+function _cov2cor!(X::AbstractMatrix)
     D = sqrt(inv(Diagonal(X)))
     lmul!(D, X)
     rmul!(X, D)
@@ -275,7 +261,7 @@ function _cov2cor!(X::AbstractMatrix{T}) where {T<:Real}
     return X
 end
 
-function _cov2cor!(X::Symmetric{T}) where {T<:Real}
+function _cov2cor!(X::Symmetric)
     _symmetric!(X.data)
     _cov2cor!(X.data)
     return X

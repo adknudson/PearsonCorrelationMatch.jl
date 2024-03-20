@@ -3,7 +3,7 @@ using PearsonCorrelationMatch
 using Distributions
 
 
-@testset "Pearson Correlation Bounds" begin
+@testset verbose=true "Correlation Bounds" begin
     @testset "Uniform-Uniform" begin
         U = Uniform(0, 1)
         Ginv(p) = asin(p / 2) * 6 / π

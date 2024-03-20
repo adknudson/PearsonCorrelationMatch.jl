@@ -1,7 +1,7 @@
 using Test
 
+include("qa.jl")
 
-include("Internals.jl")
-include("PearsonMatch.jl")
-include("PearsonBounds.jl")
-include("Aqua.jl")
+include("internals.jl")
+include("matching.jl")
+include("bounds.jl")

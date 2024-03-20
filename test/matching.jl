@@ -4,7 +4,7 @@ using Distributions
 using LinearAlgebra: isposdef
 
 
-@testset "Pearson Correlation Matching" begin
+@testset verbose=true "Correlation Matching" begin
     dA = Beta(2, 3)
     dB = Binomial(2, 0.2)
     dC = Binomial(20, 0.2)

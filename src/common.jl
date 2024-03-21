@@ -1,4 +1,4 @@
-function _generate_coefs(F, n)
+function _generate_coefs(F, n::Int)
     t, w = gausshermite(2n)
     t *= sqrt2
 
@@ -22,7 +22,7 @@ function _generate_coefs(F, n)
 end
 
 
-function _Gn0d(n, A, B, a, b, invs1s2)
+function _Gn0d(n::Int, A, B, a, b, invs1s2)
     n == 0 && return zero(Float64)
 
     M = length(A)
@@ -31,10 +31,10 @@ function _Gn0d(n, A, B, a, b, invs1s2)
     accu = zero(Float64)
 
     for r in 1:M, s in 1:N
-        r11 = _hermite_normpdf(a[r+1], n-1) * _hermite_normpdf(b[s+1], n-1)
         r00 = _hermite_normpdf(a[r],   n-1) * _hermite_normpdf(b[s],   n-1)
-        r01 = _hermite_normpdf(a[r],   n-1) * _hermite_normpdf(b[s+1], n-1)
         r10 = _hermite_normpdf(a[r+1], n-1) * _hermite_normpdf(b[s],   n-1)
+        r01 = _hermite_normpdf(a[r],   n-1) * _hermite_normpdf(b[s+1], n-1)
+        r11 = _hermite_normpdf(a[r+1], n-1) * _hermite_normpdf(b[s+1], n-1)
 
         accu += A[r] * B[s] * (r11 + r00 - r01 - r10)
     end
@@ -43,7 +43,7 @@ function _Gn0d(n, A, B, a, b, invs1s2)
 end
 
 
-function _Gn0m(n, A, a, F, invs1s2)
+function _Gn0m(n::Int, A, a, F, invs1s2)
     n == 0 && return zero(Float64)
 
     M = length(A)
@@ -74,6 +74,7 @@ end
 
 
 function _hermite(x::Float64, k::Int)
+    x = convert(Float64, x)
     k == 0 && return one(x)
     k == 1 && return x
 
@@ -89,10 +90,10 @@ function _hermite(x::Float64, k::Int)
     return Hkp1
 end
 
-_hermite(x::Real, k::Int) = _hermite(Float64(x), k)
+_hermite(x, n) = _hermite(convert(Float64, x), convert(Int, n))
 
 _hermite_normpdf(x::Float64, n::Int) = isinf(x) ? zero(x) : _hermite(x, n) * normpdf(x)
-_hermite_normpdf(x::Real, k::Int) = _hermite_normpdf(Float64(x), k)
+_hermite_normpdf(x, n) = _hermite_normpdf(convert(Float64, x), convert(Int, n))
 
 
 """

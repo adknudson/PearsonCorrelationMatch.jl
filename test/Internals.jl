@@ -39,8 +39,8 @@ using Distributions
         @test typeof(_hermite_normpdf(Inf,  10)) === Float64
         @test typeof(_hermite_normpdf(-Inf, 10)) === Float64
 
-        @test_throws MethodError _hermite(3 + 4im, 5)
-        @test_throws MethodError _hermite(3.00, 5.5)
+        @test_throws InexactError _hermite(3 + 4im, 5)
+        @test_throws InexactError _hermite(3.00, 5.5)
 
         @test _hermite_normpdf( Inf, 10) ≈ 0 atol=sqrt(eps())
         @test _hermite_normpdf(-Inf, 10) ≈ 0 atol=sqrt(eps())

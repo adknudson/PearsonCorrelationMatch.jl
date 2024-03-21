@@ -1,7 +1,7 @@
 name = "PearsonCorrelationMatch"
 uuid = "a9b75987-8b2a-4819-9442-b884e853de6b"
 authors = ["adknudson <alexk.706@gmail.com>"]
-version = "0.3.1"
+version = "0.3.2"
 
 [deps]
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"

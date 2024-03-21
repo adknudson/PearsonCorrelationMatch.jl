@@ -1,5 +1,5 @@
 """
-    pearson_bounds(d1::UnivariateDistribution, d2::UnivariateDistribution, n::Int)
+    pearson_bounds(d1::UnivariateDistribution, d2::UnivariateDistribution, n)
 
 Determine the range of admissible Pearson correlations between two distributions.
 
@@ -14,11 +14,13 @@ julia> pearson_bounds(d1, d2)
 (lower = -0.8553947509241561, upper = 0.9413665073003636)
 ```
 """
-function pearson_bounds(d1::UD, d2::UD, n::Int=32)
+function pearson_bounds(d1::UD, d2::UD, n=32)
     m1 = mean(d1)
     m2 = mean(d2)
     s1 = std(d1)
     s2 = std(d2)
+
+    n = convert(Int, n)
 
     a = _generate_coefs(d1, n)
     b = _generate_coefs(d2, n)
@@ -66,8 +68,9 @@ julia> upper
  0.939671  0.815171  1.0
 ```
 """
-function pearson_bounds(margins::AbstractVector{<:UD}, n::Int=32)
+function pearson_bounds(margins::AbstractVector{<:UD}, n=32)
     d = length(margins)
+    n = convert(Int, n)
 
     lower = SharedMatrix{Float64}(d, d)
     upper = SharedMatrix{Float64}(d, d)

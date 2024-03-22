@@ -1,20 +1,22 @@
-function _generate_coefs(F, n::Int)
-    t, w = gausshermite(2n)
+"""
+Equation (25) of the reference paper.
+"""
+function _generate_coefs(F, n::Int, m::Int=2n)
+    t, w = gausshermite(m)
     t *= sqrt2
 
     u = normcdf.(t)
+
     # If u[i] is 0 or 1, then quantile(F, u[i]) has the potential to be ±∞
     # Apply a small correction here to ensure that the values are finite
-    u = max.(u, eps(Float64))
-    u = min.(u, prevfloat(one(Float64)))
+    clamp!(u, nextfloat(0.0), prevfloat(1.0))
 
-    X = quantile.(F, u)
+    X = quantile.(Ref(F), u)
 
     a = zeros(Float64, n + 1)
     for i in eachindex(a)
         k = i - 1
         S = sum(w .* _hermite.(t, k) .* X)
-
         @inbounds a[i] = invsqrtπ * S / factorial(big(k))
     end
 
@@ -22,7 +24,10 @@ function _generate_coefs(F, n::Int)
 end
 
 
-function _Gn0d(n::Int, A, B, a, b, invs1s2)
+"""
+Equation (41) of the reference paper.
+"""
+function _Gn0_discrete(n::Int, A, B, a, b, invs1s2)
     n == 0 && return zero(Float64)
 
     M = length(A)
@@ -43,7 +48,10 @@ function _Gn0d(n::Int, A, B, a, b, invs1s2)
 end
 
 
-function _Gn0m(n::Int, A, a, F, invs1s2)
+"""
+Equation (49) of the reference paper.
+"""
+function _Gn0_mixed(n::Int, A, a, F, invs1s2, m::Int=n+4)
     n == 0 && return zero(Float64)
 
     M = length(A)
@@ -54,12 +62,16 @@ function _Gn0m(n::Int, A, a, F, invs1s2)
         accu += A[r] * (_hermite_normpdf(a[r+1], n-1) - _hermite_normpdf(a[r], n-1))
     end
 
-    t, w = gausshermite(n + 4)
+    t, w = gausshermite(m)
     t *= sqrt2
     u = normcdf.(t)
-    u = max.(u, eps())
-    u = min.(u, prevfloat(one(Float64)))
+
+    # If u[i] is 0 or 1, then quantile(F, u[i]) has the potential to be ±∞
+    # Apply a small correction here to ensure that the values are finite
+    clamp!(u, nextfloat(0.0), prevfloat(1.0))
+
     X = quantile.(F, u)
+    any(isinf, X) && error("Values must be real and finite")
 
     S = zero(Float64)
 
@@ -73,9 +85,12 @@ function _Gn0m(n::Int, A, a, F, invs1s2)
 end
 
 
+"""
+The "probabilist's" Hermite polynomial of degree ``k``.
+"""
 function _hermite(x::Float64, k::Int)
-    x = convert(Float64, x)
-    k == 0 && return one(x)
+    k < 0 && throw(ArgumentError("'k' must be a non-negative integer"))
+    k == 0 && return 1.0
     k == 1 && return x
 
     Hk = x
@@ -107,9 +122,9 @@ _is_real(x::Complex{T}) where T = abs(imag(x)) < _sqrteps(T)
 """
     _real_roots(coeffs)
 
-Find the real and unique roots of ``polynomial``.
+Find the real and unique roots of the polynomial coefficients.
 
-- ``polynomial`` is a vector of coefficients in ascending order of degree.
+- `coeffs`: A vector of coefficients in ascending order of degree.
 """
 function _real_roots(coeffs)
     complex_roots = roots(coeffs)
@@ -131,9 +146,9 @@ _sqrteps() = sqrt(eps())
 """
     _feasible_roots(coeffs)
 
-Find all real roots of ``polynomial`` that are in the interval `[-1, 1]`.
+Find all real roots of the polynomial that are in the interval ``[-1, 1]``.
 
-- ``polynomial`` is a vector of coefficients in ascending order of degree.
+- `coeffs`: a vector of coefficients in ascending order of degree.
 """
 function _feasible_roots(coeffs)
     xs = _real_roots(coeffs)
@@ -142,19 +157,19 @@ end
 
 
 """
-    _nearest_root(target, xs)
+    _nearest_root(target, roots)
 
-Find the root closest to the target value, ``x``.
+Find the root closest to the target value.
 """
-function _nearest_root(target, xs)
+function _nearest_root(target, roots)
     y = 0
     m = Inf
 
-    for x in xs
-        f = abs(x - target)
+    for x0 in roots
+        f = abs(x0 - target)
         if f < m
             m = f
-            y = x
+            y = x0
         end
     end
 
@@ -167,12 +182,12 @@ end
 
 Consider the feasible roots and return a value.
 
-- ``p`` is the target correlation
-- ``xs`` is a vector of feasible roots
+- `p`: the target correlation
+- `roots`: a vector of feasible roots
 """
-function _best_root(p, xs)
-    length(xs) == 1 && return clamp(first(xs), -1, 1)
-    length(xs)  > 1 && return _nearest_root(p, xs)
+function _best_root(p, roots)
+    length(roots) == 1 && return clamp(first(roots), -1, 1)
+    length(roots)  > 1 && return _nearest_root(p, roots)
     return p < 0 ? nextfloat(-one(Float64)) : prevfloat(one(Float64))
 end
 
@@ -180,7 +195,7 @@ end
 """
     _idx_subsets2(d)
 
-equivalent to IterTools.subsets(1:d, Val(2)), but allocates all pairs for use in parallel
+Equivalent to IterTools.subsets(1:d, Val(2)), but allocates all pairs for use in parallel
 threads.
 """
 function _idx_subsets2(d::Int)

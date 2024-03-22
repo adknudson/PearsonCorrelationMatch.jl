@@ -22,8 +22,8 @@ function pearson_bounds(d1::UD, d2::UD, n=32)
 
     n = convert(Int, n)
 
-    a = _generate_coefs(d1, n)
-    b = _generate_coefs(d2, n)
+    a = _generate_coefs(d1, n, 2n)
+    b = _generate_coefs(d2, n, 2n)
 
     k = big.(0:1:n)
 

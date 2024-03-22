@@ -61,14 +61,14 @@ function _pearson_match(p::Float64, d1::DUD, d2::DUD, n::Int)
     B = Int(min2):Int(max2)
 
     # z = Φ⁻¹[F(A)], α[0] = -Inf, β[0] = -Inf
-    a = [-Inf; norminvcdf.(cdf.(d1, A))]
-    b = [-Inf; norminvcdf.(cdf.(d2, B))]
+    a = [-Inf; norminvcdf.(cdf.(Ref(d1), A))]
+    b = [-Inf; norminvcdf.(cdf.(Ref(d2), B))]
 
     c2 = inv(s1 * s2)
 
     coef = zeros(Float64, n+1)
     for k in 1:n
-        @inbounds coef[k + 1] = _Gn0d(k, A, B, a, b, c2) / factorial(big(k))
+        @inbounds coef[k + 1] = _Gn0_discrete(k, A, B, a, b, c2) / factorial(big(k))
     end
     coef[1] = -p
 
@@ -91,7 +91,7 @@ function _pearson_match(p::Float64, d1::DUD, d2::CUD, n::Int)
 
     coef = zeros(Float64, n+1)
     for k in 1:n
-        @inbounds coef[k+1] = _Gn0m(k, A, a, d2, c2) / factorial(big(k))
+        @inbounds coef[k+1] = _Gn0_mixed(k, A, a, d2, c2) / factorial(big(k))
     end
     coef[1] = -p
 

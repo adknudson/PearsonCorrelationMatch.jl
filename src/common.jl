@@ -107,8 +107,11 @@ end
 
 _hermite(x, n) = _hermite(convert(Float64, x), convert(Int, n))
 
-_hermite_normpdf(x::Float64, n::Int) = isinf(x) ? zero(x) : _hermite(x, n) * normpdf(x)
-_hermite_normpdf(x, n) = _hermite_normpdf(convert(Float64, x), convert(Int, n))
+"""
+    He(x, k) * normpdf(x)
+"""
+_hermite_normpdf(x::Float64, k::Int) = isinf(x) ? zero(x) : _hermite(x, k) * normpdf(x)
+_hermite_normpdf(x, k) = _hermite_normpdf(convert(Float64, x), convert(Int, k))
 
 
 """
@@ -116,7 +119,7 @@ _hermite_normpdf(x, n) = _hermite_normpdf(convert(Float64, x), convert(Int, n))
 
 Check if a number is real within a given tolerance.
 """
-_is_real(x::Complex{T}) where T = abs(imag(x)) < _sqrteps(T)
+_is_real(x::Complex{T}) where T = abs(imag(x)) < sqrt(eps(T))
 
 
 """
@@ -135,15 +138,6 @@ end
 
 
 """
-    _sqrteps(T)
-
-Return the square root of machine precision for a given floating point type.
-"""
-_sqrteps(::Type{T}) where T = sqrt(eps(T))
-_sqrteps() = sqrt(eps())
-
-
-"""
     _feasible_roots(coeffs)
 
 Find all real roots of the polynomial that are in the interval ``[-1, 1]``.
@@ -152,7 +146,7 @@ Find all real roots of the polynomial that are in the interval ``[-1, 1]``.
 """
 function _feasible_roots(coeffs)
     xs = _real_roots(coeffs)
-    return filter!(x -> abs(x) ≤ 1.0 + _sqrteps(), xs)
+    return filter!(x -> abs(x) ≤ 1.0 + sqrt(eps()), xs)
 end
 
 

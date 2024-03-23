@@ -23,7 +23,6 @@ function _generate_coefs(F, n::Int, m::Int=2n)
     return a
 end
 
-
 """
 Equation (41) of the reference paper.
 """
@@ -36,10 +35,10 @@ function _Gn0_discrete(n::Int, A, B, a, b, invs1s2)
     accu = zero(Float64)
 
     for r in 1:M, s in 1:N
-        r00 = _hermite_normpdf(a[r],   n-1) * _hermite_normpdf(b[s],   n-1)
-        r10 = _hermite_normpdf(a[r+1], n-1) * _hermite_normpdf(b[s],   n-1)
-        r01 = _hermite_normpdf(a[r],   n-1) * _hermite_normpdf(b[s+1], n-1)
-        r11 = _hermite_normpdf(a[r+1], n-1) * _hermite_normpdf(b[s+1], n-1)
+        r00 = _hermite_normpdf(a[r], n - 1) * _hermite_normpdf(b[s], n - 1)
+        r10 = _hermite_normpdf(a[r+1], n - 1) * _hermite_normpdf(b[s], n - 1)
+        r01 = _hermite_normpdf(a[r], n - 1) * _hermite_normpdf(b[s+1], n - 1)
+        r11 = _hermite_normpdf(a[r+1], n - 1) * _hermite_normpdf(b[s+1], n - 1)
 
         accu += A[r] * B[s] * (r11 + r00 - r01 - r10)
     end
@@ -47,11 +46,10 @@ function _Gn0_discrete(n::Int, A, B, a, b, invs1s2)
     return accu * invs1s2
 end
 
-
 """
 Equation (49) of the reference paper.
 """
-function _Gn0_mixed(n::Int, A, a, F, invs1s2, m::Int=n+4)
+function _Gn0_mixed(n::Int, A, a, F, invs1s2, m::Int=n + 4)
     n == 0 && return zero(Float64)
 
     M = length(A)
@@ -59,7 +57,7 @@ function _Gn0_mixed(n::Int, A, a, F, invs1s2, m::Int=n+4)
     accu = zero(Float64)
 
     for r in 1:M
-        accu += A[r] * (_hermite_normpdf(a[r+1], n-1) - _hermite_normpdf(a[r], n-1))
+        accu += A[r] * (_hermite_normpdf(a[r+1], n - 1) - _hermite_normpdf(a[r], n - 1))
     end
 
     t, w = gausshermite(m)
@@ -83,7 +81,6 @@ function _Gn0_mixed(n::Int, A, a, F, invs1s2, m::Int=n+4)
 
     return -invs1s2 * accu * S
 end
-
 
 """
 The "probabilist's" Hermite polynomial of degree ``k``.
@@ -113,14 +110,12 @@ _hermite(x, n) = _hermite(convert(Float64, x), convert(Int, n))
 _hermite_normpdf(x::Float64, k::Int) = isinf(x) ? zero(x) : _hermite(x, k) * normpdf(x)
 _hermite_normpdf(x, k) = _hermite_normpdf(convert(Float64, x), convert(Int, k))
 
-
 """
     _is_real(x::Complex)
 
 Check if a number is real within a given tolerance.
 """
-_is_real(x::Complex{T}) where T = abs(imag(x)) < sqrt(eps(T))
-
+_is_real(x::Complex{T}) where {T} = abs(imag(x)) < sqrt(eps(T))
 
 """
     _real_roots(coeffs)
@@ -136,7 +131,6 @@ function _real_roots(coeffs)
     return unique!(xs)
 end
 
-
 """
     _feasible_roots(coeffs)
 
@@ -148,7 +142,6 @@ function _feasible_roots(coeffs)
     xs = _real_roots(coeffs)
     return filter!(x -> abs(x) ≤ 1.0 + sqrt(eps()), xs)
 end
-
 
 """
     _nearest_root(target, roots)
@@ -170,7 +163,6 @@ function _nearest_root(target, roots)
     return y
 end
 
-
 """
     _best_root(p, xs)
 
@@ -181,10 +173,9 @@ Consider the feasible roots and return a value.
 """
 function _best_root(p, roots)
     length(roots) == 1 && return clamp(first(roots), -1, 1)
-    length(roots)  > 1 && return _nearest_root(p, roots)
+    length(roots) > 1 && return _nearest_root(p, roots)
     return p < 0 ? nextfloat(-one(Float64)) : prevfloat(one(Float64))
 end
-
 
 """
     _idx_subsets2(d)
@@ -197,9 +188,9 @@ function _idx_subsets2(d::Int)
     xs = Vector{Tuple}(undef, n)
 
     k = 1
-    for i = 1:d-1
-        for j = i+1:d
-            xs[k] = (i,j)
+    for i in 1:d-1
+        for j in i+1:d
+            xs[k] = (i, j)
             k += 1
         end
     end
@@ -207,32 +198,30 @@ function _idx_subsets2(d::Int)
     return xs
 end
 
-
 """
     _symmetric!(X)
 
 Copy the upper part of a matrix to its lower half.
 """
-function _symmetric!(X::AbstractMatrix{T}) where T
+function _symmetric!(X::AbstractMatrix{T}) where {T}
     m, n = size(X)
     m == n || throw(DimensionMismatch("Input matrix must be square"))
 
-    for i = 1:n-1
-        for j = i+1:n
-            @inbounds X[j,i] = X[i,j]
+    for i in 1:n-1
+        for j in i+1:n
+            @inbounds X[j, i] = X[i, j]
         end
     end
 
     return X
 end
 
-
 """
     _set_diag1!(X)
 
 Set the diagonal elements of a square matrix to `1`.
 """
-function _set_diag1!(X::AbstractMatrix{T}) where T
+function _set_diag1!(X::AbstractMatrix{T}) where {T}
     m, n = size(X)
     m == n || throw(DimensionMismatch("Input matrix must be square"))
 
@@ -243,19 +232,17 @@ function _set_diag1!(X::AbstractMatrix{T}) where T
     return X
 end
 
-
 """
     _project_psd(X, ϵ)
 
 Project `X` onto the set of PSD matrixes.
 """
 function _project_psd!(X, ϵ)
-    λ, P = eigen(Symmetric(X), sortby=x->-x)
+    λ, P = eigen(Symmetric(X); sortby=x -> -x)
     replace!(x -> max(x, ϵ), λ)
     X .= P * Diagonal(λ) * P'
     return X
 end
-
 
 """
     _cov2cor!(X)

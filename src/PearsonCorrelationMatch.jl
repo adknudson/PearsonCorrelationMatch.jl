@@ -12,14 +12,11 @@ using PolynomialRoots: roots
 using SharedArrays: SharedMatrix, sdata
 using StatsFuns: normcdf, normpdf, norminvcdf
 
-
 export pearson_bounds, pearson_match
-
 
 include("common.jl")
 include("pearson_bounds.jl")
 include("pearson_match.jl")
-
 
 using PrecompileTools
 using Distributions: Distributions

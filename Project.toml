@@ -18,10 +18,12 @@ Aqua = "0.8"
 Distributions = "0.24.5, 0.25.57"
 FastGaussQuadrature = "1"
 IrrationalConstants = "0.1.1, 0.2"
+JuliaFormatter = "1"
 LinearAlgebra = "<0.0.1, 1"
 PolynomialRoots = "1"
 Polynomials = "4"
 PrecompileTools = "1"
+SafeTestsets = "0.1"
 SharedArrays = "<0.0.1, 1"
 StatsFuns = "0.9.15, 1"
 Test = "1"
@@ -29,8 +31,10 @@ julia = "1.6, 1.7, 1.8, 1.9, 1.10"
 
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
+JuliaFormatter = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
 Polynomials = "f27b6e38-b328-58d1-80ce-0feddd5e7a45"
+SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "Polynomials", "Aqua"]
+test = ["Test", "Polynomials", "Aqua", "JuliaFormatter", "SafeTestsets"]

@@ -1,6 +1,7 @@
-using Test
+using SafeTestsets
 
-include("qa.jl")
-include("internals.jl")
-include("matching.jl")
-include("bounds.jl")
+@safetestset "Quality Assurance" include("qa.jl")
+@safetestset "Formatting" include("format_check.jl")
+@safetestset "Utilities" include("internals.jl")
+@safetestset "Pearson Matching" include("matching.jl")
+@safetestset "Pearson Bounds" include("bounds.jl")

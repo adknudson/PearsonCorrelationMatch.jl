@@ -20,8 +20,6 @@ function pearson_match(p::Real, d1::UD, d2::UD, n=21)
     return _pearson_match(Float64(p), d1, d2, Int(n))
 end
 
-
-
 function _pearson_match(p::Float64, d1::CUD, d2::CUD, n::Int)
     m1 = mean(d1)
     m2 = mean(d2)
@@ -44,7 +42,6 @@ function _pearson_match(p::Float64, d1::CUD, d2::CUD, n::Int)
     return _best_root(p, xs)
 end
 
-
 function _pearson_match(p::Float64, d1::DUD, d2::DUD, n::Int)
     max1 = maximum(d1)
     max2 = maximum(d2)
@@ -66,16 +63,15 @@ function _pearson_match(p::Float64, d1::DUD, d2::DUD, n::Int)
 
     c2 = inv(s1 * s2)
 
-    coef = zeros(Float64, n+1)
+    coef = zeros(Float64, n + 1)
     for k in 1:n
-        @inbounds coef[k + 1] = _Gn0_discrete(k, A, B, a, b, c2) / factorial(big(k))
+        @inbounds coef[k+1] = _Gn0_discrete(k, A, B, a, b, c2) / factorial(big(k))
     end
     coef[1] = -p
 
     xs = _feasible_roots(coef)
     return _best_root(p, xs)
 end
-
 
 function _pearson_match(p::Float64, d1::DUD, d2::CUD, n::Int)
     s1 = std(d1)
@@ -89,7 +85,7 @@ function _pearson_match(p::Float64, d1::DUD, d2::CUD, n::Int)
 
     c2 = inv(s1 * s2)
 
-    coef = zeros(Float64, n+1)
+    coef = zeros(Float64, n + 1)
     for k in 1:n
         @inbounds coef[k+1] = _Gn0_mixed(k, A, a, d2, c2) / factorial(big(k))
     end
@@ -99,12 +95,9 @@ function _pearson_match(p::Float64, d1::DUD, d2::CUD, n::Int)
     return _best_root(p, xs)
 end
 
-
 function _pearson_match(p::Float64, d1::CUD, d2::DUD, n::Int)
     return _pearson_match(p, d2, d1, n)
 end
-
-
 
 """
     pearson_match(rho::AbstractMatrix{<:Real}, margins::AbstractVector{<:UnivariateDistribution}, n::Int)
@@ -132,16 +125,17 @@ julia> pearson_match(rho, margins)
  0.612753  0.418761  1.0
 ```
 """
-function pearson_match(rho::AbstractMatrix{T}, margins::AbstractVector{<:UD}, n=21) where {T<:Real}
+function pearson_match(rho::AbstractMatrix{<:Real}, margins::AbstractVector{<:UD}, n=21)
     d = length(margins)
     r, s = size(rho)
-    (r == s == d) || throw(DimensionMismatch("The number of margins must be the same size as the correlation matrix."))
+    (r == s == d) ||
+        throw(DimensionMismatch("The number of margins must be the same size as the correlation matrix."))
 
     R = SharedMatrix{Float64}(d, d)
 
     # Calculate the pearson matching pairs
     Base.Threads.@threads for (i, j) in _idx_subsets2(d)
-        @inbounds R[i, j] = pearson_match(rho[i,j], margins[i], margins[j], n)
+        @inbounds R[i, j] = pearson_match(rho[i, j], margins[i], margins[j], n)
     end
 
     S = sdata(R)

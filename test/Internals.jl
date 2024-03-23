@@ -12,10 +12,10 @@ function nothrow(f)
         f()
     catch e
         println(e)
-        false
-    else
-        true
+        return false
     end
+
+    return true
 end
 
 

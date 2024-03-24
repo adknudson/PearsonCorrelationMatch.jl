@@ -20,10 +20,8 @@ function pearson_match(p::Real, d1::UD, d2::UD, n=21)
     return _invrule(Float64(p), d1, d2, Int(n))
 end
 
-
 # General inverse rule uses the fallback methods
 _invrule(p::Float64, d1::UD, d2::UD, n::Int) = _invrule_fallback(p, d1, d2, n)
-
 
 # continuous case
 function _invrule_fallback(p::Float64, d1::CUD, d2::CUD, n::Int)
@@ -48,7 +46,6 @@ function _invrule_fallback(p::Float64, d1::CUD, d2::CUD, n::Int)
     return _best_root(p, xs)
 end
 
-
 # discrete case
 function _invrule_fallback(p::Float64, d1::DUD, d2::DUD, n::Int)
     max1 = maximum(d1)
@@ -71,16 +68,15 @@ function _invrule_fallback(p::Float64, d1::DUD, d2::DUD, n::Int)
 
     c2 = inv(s1 * s2)
 
-    coef = zeros(Float64, n+1)
+    coef = zeros(Float64, n + 1)
     for k in 1:n
-        @inbounds coef[k + 1] = _Gn0_discrete(k, A, B, a, b, c2) / factorial(big(k))
+        @inbounds coef[k+1] = _Gn0_discrete(k, A, B, a, b, c2) / factorial(big(k))
     end
     coef[1] = -p
 
     xs = _feasible_roots(coef)
     return _best_root(p, xs)
 end
-
 
 # mixed case
 function _invrule_fallback(p::Float64, d1::DUD, d2::CUD, n::Int)
@@ -95,7 +91,7 @@ function _invrule_fallback(p::Float64, d1::DUD, d2::CUD, n::Int)
 
     c2 = inv(s1 * s2)
 
-    coef = zeros(Float64, n+1)
+    coef = zeros(Float64, n + 1)
     for k in 1:n
         @inbounds coef[k+1] = _Gn0_mixed(k, A, a, d2, c2) / factorial(big(k))
     end
@@ -105,12 +101,10 @@ function _invrule_fallback(p::Float64, d1::DUD, d2::CUD, n::Int)
     return _best_root(p, xs)
 end
 
-
 # mixed case
 function _invrule_fallback(p::Float64, d1::CUD, d2::DUD, n::Int)
     return _invrule_fallback(p, d2, d1, n)
 end
-
 
 """
     pearson_match(rho, margins, n=21)
@@ -141,7 +135,8 @@ julia> pearson_match(rho, margins)
 function pearson_match(rho::AbstractMatrix{<:Real}, margins, n::Real=21)
     d = length(margins)
     r, s = size(rho)
-    (r == s == d) || throw(DimensionMismatch("The number of margins must be the same size as the correlation matrix."))
+    (r == s == d) ||
+        throw(DimensionMismatch("The number of margins must be the same size as the correlation matrix."))
 
     R = SharedMatrix{Float64}(d, d)
 

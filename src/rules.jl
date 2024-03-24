@@ -6,7 +6,6 @@ Finds ``G(p) = pₓ`` where ``p`` is the correlation used in a bivariate Gaussia
 """
 function _rule end
 
-
 """
 _invrule(p, d1, d2, n)
 
@@ -14,7 +13,6 @@ Finds ``Ginv(pₓ) = p`` where ``pₓ`` is the target correlation between two ma
 ``p`` is the correlation to be used in a bivariate Gaussian copula.
 """
 function _invrule end
-
 
 # Uniform-Uniform
 _invrule(p::Float64, ::Uniform, ::Uniform, ::Int) = 2 * sinpi(p / 6)

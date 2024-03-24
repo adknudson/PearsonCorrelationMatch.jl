@@ -10,44 +10,44 @@ using LinearAlgebra: isposdef
     dC = Binomial(20, 0.2)
 
     @testset "Continuous-Continuous" begin
-        @test -0.914 ≈ pearson_match(-0.9, dA, dA, 21) atol=0.005
-        @test -0.611 ≈ pearson_match(-0.6, dA, dA, 21) atol=0.005
-        @test -0.306 ≈ pearson_match(-0.3, dA, dA, 21) atol=0.005
-        @test  0.304 ≈ pearson_match( 0.3, dA, dA, 21) atol=0.005
-        @test  0.606 ≈ pearson_match( 0.6, dA, dA, 21) atol=0.005
-        @test  0.904 ≈ pearson_match( 0.9, dA, dA, 21) atol=0.005
+        @test -0.914 ≈ pearson_match(-0.9, dA, dA) atol=0.005
+        @test -0.611 ≈ pearson_match(-0.6, dA, dA) atol=0.005
+        @test -0.306 ≈ pearson_match(-0.3, dA, dA) atol=0.005
+        @test  0.304 ≈ pearson_match( 0.3, dA, dA) atol=0.005
+        @test  0.606 ≈ pearson_match( 0.6, dA, dA) atol=0.005
+        @test  0.904 ≈ pearson_match( 0.9, dA, dA) atol=0.005
     end
 
     @testset "Discrete-Discrete" begin
-        @test -0.937 ≈ pearson_match(-0.5, dB, dB, 21) atol=0.005
-        @test -0.501 ≈ pearson_match(-0.3, dB, dB, 21) atol=0.005
-        @test -0.322 ≈ pearson_match(-0.2, dB, dB, 21) atol=0.005
-        @test  0.418 ≈ pearson_match( 0.3, dB, dB, 21) atol=0.005
-        @test  0.769 ≈ pearson_match( 0.6, dB, dB, 21) atol=0.005
-        @test  0.944 ≈ pearson_match( 0.8, dB, dB, 21) atol=0.005
+        @test -0.937 ≈ pearson_match(-0.5, dB, dB) atol=0.005
+        @test -0.501 ≈ pearson_match(-0.3, dB, dB) atol=0.005
+        @test -0.322 ≈ pearson_match(-0.2, dB, dB) atol=0.005
+        @test  0.418 ≈ pearson_match( 0.3, dB, dB) atol=0.005
+        @test  0.769 ≈ pearson_match( 0.6, dB, dB) atol=0.005
+        @test  0.944 ≈ pearson_match( 0.8, dB, dB) atol=0.005
 
-        @test -0.939 ≈ pearson_match(-0.9, dC, dC, 21) atol=0.005
-        @test -0.624 ≈ pearson_match(-0.6, dC, dC, 21) atol=0.005
-        @test -0.311 ≈ pearson_match(-0.3, dC, dC, 21) atol=0.005
-        @test  0.310 ≈ pearson_match( 0.3, dC, dC, 21) atol=0.005
-        @test  0.618 ≈ pearson_match( 0.6, dC, dC, 21) atol=0.005
-        @test  0.925 ≈ pearson_match( 0.9, dC, dC, 21) atol=0.005
+        @test -0.939 ≈ pearson_match(-0.9, dC, dC) atol=0.005
+        @test -0.624 ≈ pearson_match(-0.6, dC, dC) atol=0.005
+        @test -0.311 ≈ pearson_match(-0.3, dC, dC) atol=0.005
+        @test  0.310 ≈ pearson_match( 0.3, dC, dC) atol=0.005
+        @test  0.618 ≈ pearson_match( 0.6, dC, dC) atol=0.005
+        @test  0.925 ≈ pearson_match( 0.9, dC, dC) atol=0.005
     end
 
     @testset "Mixed" begin
-        @test -0.890 ≈ pearson_match(-0.7, dB, dA, 21) atol=0.005
-        @test -0.632 ≈ pearson_match(-0.5, dB, dA, 21) atol=0.005
-        @test -0.377 ≈ pearson_match(-0.3, dB, dA, 21) atol=0.005
-        @test  0.366 ≈ pearson_match( 0.3, dB, dA, 21) atol=0.005
-        @test  0.603 ≈ pearson_match( 0.5, dB, dA, 21) atol=0.005
-        @test  0.945 ≈ pearson_match( 0.8, dB, dA, 21) atol=0.005
+        @test -0.890 ≈ pearson_match(-0.7, dB, dA) atol=0.005
+        @test -0.632 ≈ pearson_match(-0.5, dB, dA) atol=0.005
+        @test -0.377 ≈ pearson_match(-0.3, dB, dA) atol=0.005
+        @test  0.366 ≈ pearson_match( 0.3, dB, dA) atol=0.005
+        @test  0.603 ≈ pearson_match( 0.5, dB, dA) atol=0.005
+        @test  0.945 ≈ pearson_match( 0.8, dB, dA) atol=0.005
 
-        @test -0.928 ≈ pearson_match(-0.9, dC, dA, 21) atol=0.005
-        @test -0.618 ≈ pearson_match(-0.6, dC, dA, 21) atol=0.005
-        @test -0.309 ≈ pearson_match(-0.3, dC, dA, 21) atol=0.005
-        @test  0.308 ≈ pearson_match( 0.3, dC, dA, 21) atol=0.005
-        @test  0.613 ≈ pearson_match( 0.6, dC, dA, 21) atol=0.005
-        @test  0.916 ≈ pearson_match( 0.9, dC, dA, 21) atol=0.005
+        @test -0.928 ≈ pearson_match(-0.9, dC, dA) atol=0.005
+        @test -0.618 ≈ pearson_match(-0.6, dC, dA) atol=0.005
+        @test -0.309 ≈ pearson_match(-0.3, dC, dA) atol=0.005
+        @test  0.308 ≈ pearson_match( 0.3, dC, dA) atol=0.005
+        @test  0.613 ≈ pearson_match( 0.6, dC, dA) atol=0.005
+        @test  0.916 ≈ pearson_match( 0.9, dC, dA) atol=0.005
     end
 
     @testset "Uniform-Uniform" begin
@@ -60,7 +60,7 @@ using LinearAlgebra: isposdef
         pu = clamp(Ginv(1), -1, 1)
 
         for p in range(pl, pu; length=10)
-            @test pearson_match(p, U, U, 21) ≈ G(p) atol=0.005
+            @test pearson_match(p, U, U) ≈ G(p) atol=0.005
         end
     end
 
@@ -74,7 +74,7 @@ using LinearAlgebra: isposdef
         pl, pu = Ginv(-1), Ginv(1)
 
         for p in range(pl, pu; length=10)
-            @test pearson_match(p, U, B, 21) ≈ G(p) atol=0.005
+            @test pearson_match(p, U, B) ≈ G(p) atol=0.005
         end
     end
 
@@ -88,7 +88,7 @@ using LinearAlgebra: isposdef
         pl, pu = Ginv(-1), Ginv(1)
 
         for p in range(pl, pu; length=10)
-            @test pearson_match(p, U, N, 21) ≈ G(p) atol=0.005
+            @test pearson_match(p, U, N) ≈ G(p) atol=0.005
         end
     end
 
@@ -102,7 +102,7 @@ using LinearAlgebra: isposdef
         pl, pu = Ginv(-1), Ginv(1)
 
         for p in range(pl, pu; length=10)
-            @test pearson_match(p, B, N, 21) ≈ G(p) atol=0.005
+            @test pearson_match(p, B, N) ≈ G(p) atol=0.005
         end
     end
 

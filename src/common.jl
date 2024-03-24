@@ -1,7 +1,7 @@
 """
 Equation (25) of the reference paper.
 """
-function _generate_coefs(F, n::Int, m::Int=2n)
+function _generate_coefs(F::UD, n::Int, m::Int)
     t, w = gausshermite(m)
     t *= sqrt2
 
@@ -24,9 +24,12 @@ function _generate_coefs(F, n::Int, m::Int=2n)
 end
 
 """
+    _Gn0_discrete(A, B, a, b, invs1s2, n::Int)
+
+
 Equation (41) of the reference paper.
 """
-function _Gn0_discrete(n::Int, A, B, a, b, invs1s2)
+function _Gn0_discrete(A, B, a, b, invs1s2, n::Int)
     n == 0 && return zero(Float64)
 
     M = length(A)
@@ -47,9 +50,11 @@ function _Gn0_discrete(n::Int, A, B, a, b, invs1s2)
 end
 
 """
+    _Gn0_mixed(A, a, F, invs1s2, n::Int, m::Int)
+
 Equation (49) of the reference paper.
 """
-function _Gn0_mixed(n::Int, A, a, F, invs1s2, m::Int=n + 4)
+function _Gn0_mixed(A, a, F, invs1s2, n::Int, m::Int)
     n == 0 && return zero(Float64)
 
     M = length(A)

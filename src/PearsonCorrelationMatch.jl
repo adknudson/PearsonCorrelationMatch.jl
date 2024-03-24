@@ -3,7 +3,7 @@ module PearsonCorrelationMatch
 using Distributions: UnivariateDistribution as UD
 using Distributions: ContinuousUnivariateDistribution as CUD
 using Distributions: DiscreteUnivariateDistribution as DUD
-using Distributions: mean, std, quantile, cdf
+using Distributions
 
 using FastGaussQuadrature: gausshermite
 using IrrationalConstants: sqrt2, invsqrtπ
@@ -15,8 +15,9 @@ using StatsFuns: normcdf, normpdf, norminvcdf
 export pearson_bounds, pearson_match
 
 include("common.jl")
-include("pearson_bounds.jl")
-include("pearson_match.jl")
+include("bounds.jl")
+include("match.jl")
+include("rules.jl")
 
 using PrecompileTools
 using Distributions: Distributions

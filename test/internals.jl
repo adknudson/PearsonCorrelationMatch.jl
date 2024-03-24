@@ -26,10 +26,10 @@ end
         dC = LogitNormal(3, 1)
         dD = Beta(5, 3)
 
-        @test nothrow(() -> _generate_coefs(dA, 21))
-        @test nothrow(() -> _generate_coefs(dB, 21))
-        @test nothrow(() -> _generate_coefs(dC, 21))
-        @test nothrow(() -> _generate_coefs(dD, 21))
+        @test nothrow(() -> _generate_coefs(dA, 21, 28))
+        @test nothrow(() -> _generate_coefs(dB, 21, 28))
+        @test nothrow(() -> _generate_coefs(dC, 21, 28))
+        @test nothrow(() -> _generate_coefs(dD, 21, 28))
     end
 
     @testset "Gn0 discrete" begin

@@ -30,15 +30,14 @@ function pearson_bounds(d1::UD, d2::UD, n::Real=32)
     c1 = -m1 * m2
     c2 = inv(s1 * s2)
 
-    pl = c1 * c2 + c2 * sum((-1).^k .* kab)
+    pl = c1 * c2 + c2 * sum((-1) .^ k .* kab)
     pu = c1 * c2 + c2 * sum(kab)
 
     pl = clamp(pl, -1, 1)
     pu = clamp(pu, -1, 1)
 
-    return (lower = Float64(pl), upper = Float64(pu))
+    return (lower=Float64(pl), upper=Float64(pu))
 end
-
 
 """
     pearson_bounds(margins::AbstractVector{<:UnivariateDistribution}, n::Int)
@@ -74,10 +73,10 @@ function pearson_bounds(margins::AbstractVector{<:UD}, n=32)
     lower = SharedMatrix{Float64}(d, d)
     upper = SharedMatrix{Float64}(d, d)
 
-    Base.Threads.@threads for (i,j) in _idx_subsets2(d)
+    Base.Threads.@threads for (i, j) in _idx_subsets2(d)
         l, u = pearson_bounds(margins[i], margins[j], n)
-        @inbounds lower[i,j] = l
-        @inbounds upper[i,j] = u
+        @inbounds lower[i, j] = l
+        @inbounds upper[i, j] = u
     end
 
     L = sdata(lower)
@@ -88,5 +87,5 @@ function pearson_bounds(margins::AbstractVector{<:UD}, n=32)
     _symmetric!(U)
     _set_diag1!(U)
 
-    (lower = L, upper = U)
+    return (lower=L, upper=U)
 end

@@ -1,7 +1,27 @@
 """
-    pearson_bounds(d1, d2, n=32)
+    pearson_bounds(d1, d2; n::Real=20, m::Real=128, kwargs...)
+
 
 Determine the range of admissible Pearson correlations between two distributions.
+
+# Fields
+
+- `d1`: The first marginal distribution.
+- `d2`: The second marginal distribution.
+- `n`: The degree of the polynomial used to estimate the bounds.
+- `m`: The number of points used in the hermite polynomial interpolation.
+- `kwargs`: Additional keyword arguments. Currently unused.
+
+# Details
+
+The accuracy of the bounds depends on the degree of the polynomial and the number of hermite
+points. Be careful not to set the polynomial degree too high as Runge's theorem states that
+a polynomial of too high degree would cause oscillation at the edges of the interval and
+reduce accuracy.
+
+In general raising the number of hermite points will result in better accuracy, but comes
+with a small performance hit. Furthermore the number of hermite points should be higher
+than the degree of the polynomial.
 
 # Examples
 
@@ -14,16 +34,17 @@ julia> pearson_bounds(d1, d2)
 (lower = -0.8553947509241561, upper = 0.9413665073003636)
 ```
 """
-function pearson_bounds(d1::UD, d2::UD, n::Real=32)
+function pearson_bounds(d1::UD, d2::UD; n::Real=20, m::Real=128, kwargs...)
     n = Int(n)
+    m = Int(m)
 
     m1 = mean(d1)
     m2 = mean(d2)
     s1 = std(d1)
     s2 = std(d2)
 
-    a = _generate_coefs(d1, n, 2n)
-    b = _generate_coefs(d2, n, 2n)
+    a = _generate_coefs(d1, n, m)
+    b = _generate_coefs(d2, n, m)
     k = big.(0:n)
     kab = a .* factorial.(k) .* b
 
@@ -40,9 +61,16 @@ function pearson_bounds(d1::UD, d2::UD, n::Real=32)
 end
 
 """
-    pearson_bounds(margins::AbstractVector{<:UnivariateDistribution}, n::Int)
+    pearson_bounds(margins; n::Real=12, m::Real=128, kwargs...)
 
 Determine the range of admissible Pearson correlations pairwise between a list of distributions.
+
+# Fields
+
+- `margins`: A list of marginal distributions.
+- `n`: The degree of the polynomial used to estimate the bounds.
+- `m`: The number of points used in the hermite polynomial interpolation.
+- `kwargs`: Additional keyword arguments. Currently unused.
 
 # Examples
 
@@ -66,15 +94,16 @@ julia> upper
  0.939671  0.815171  1.0
 ```
 """
-function pearson_bounds(margins::AbstractVector{<:UD}, n=32)
+function pearson_bounds(margins; n::Real=20, m::Real=128, kwargs...)
     d = length(margins)
-    n = convert(Int, n)
+    n = Int(n)
+    m = Int(m)
 
     lower = SharedMatrix{Float64}(d, d)
     upper = SharedMatrix{Float64}(d, d)
 
     Base.Threads.@threads for (i, j) in _idx_subsets2(d)
-        l, u = pearson_bounds(margins[i], margins[j], n)
+        l, u = pearson_bounds(margins[i], margins[j]; n=n, m=m, kwargs...)
         @inbounds lower[i, j] = l
         @inbounds upper[i, j] = u
     end

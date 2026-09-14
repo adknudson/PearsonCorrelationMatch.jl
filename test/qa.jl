@@ -1,7 +1,4 @@
-using Test
-using Aqua, PearsonCorrelationMatch
+using Aqua
+using PearsonCorrelationMatch
 
-@testset "Quality Assurance" begin
-    Aqua.test_all(PearsonCorrelationMatch; ambiguities=false)
-    Aqua.test_ambiguities(PearsonCorrelationMatch)
-end
+Aqua.test_all(PearsonCorrelationMatch)

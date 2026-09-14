@@ -1,190 +1,147 @@
 """
-    pearson_match(p::Real, d1, d2; n::Real=12, m::Real=128, kwargs...)
-
-Compute the Pearson correlation coefficient to be used in a bivariate Gaussian copula.
-
-# Fields
-
-- `p`: The target correltation between the marginal distributions.
-- `d1`: The first marginal distribution.
-- `d2`: The second marginal distribution.
-- `n`: The degree of the polynomial used to estimate the matching correlation.
-- `m`: The number of points used in the hermite polynomial interpolation.
-- `kwargs`: Additional keyword arguments. Currently unused.
-
-# Examples
-
-```julia-repl
-julia> using Distributions
-
-julia> d1 = Beta(2, 3); d2 = Binomial(20, 0.2);
-
-julia> pearson_match(0.6, d1, d2)
-0.6127531346934495
-```
+Determines the Gaussian copula parameter ρ_z to match the target Pearson correlation ρ_x
+between two arbitrary marginal distributions (Continuous or Discrete).
 """
-function pearson_match(p::Real, d1::UD, d2::UD; n::Real=20, m::Real=128, kwargs...)
-    -1 <= p <= 1 || throw(ArgumentError("`p` must be in [-1, 1]"))
-    n > 0 || throw(ArgumentError("`n` must be a positive number"))
-    return _invrule(Float64(p), d1, d2; n=Int(n), m=Int(m))
-end
-
-_invrule(p::Float64, d1::UD, d2::UD; kwargs...) = _invrule_fallback(p, d1, d2; kwargs...)
-
-"""
-    _invrule_fallback(p::Float64, d1, d2; n::Int, m::Int, kwargs...)
-
-Countinuous case.
-"""
-function _invrule_fallback(p::Float64, d1::CUD, d2::CUD; n::Int, m::Int, kwargs...)
-    m1 = mean(d1)
-    m2 = mean(d2)
-    s1 = std(d1)
-    s2 = std(d2)
-
-    a = _generate_coefs(d1, n, m)
-    b = _generate_coefs(d2, n, m)
-
-    c1 = -m1 * m2
-    c2 = inv(s1 * s2)
-
-    coef = zeros(Float64, n + 1)
-    for k in 1:n
-        @inbounds coef[k+1] = c2 * a[k+1] * b[k+1] * factorial(big(k))
+function pearson_match(rho_x::Float64, d1::UnivariateDistribution, d2::UnivariateDistribution; degree::Int = 20, m::Int = 40)
+    # Generate quadrature rules if at least one variable is continuous
+    nodes, weights = Float64[], Float64[]
+    if d1 isa ContinuousUnivariateDistribution || d2 isa ContinuousUnivariateDistribution
+        nodes, weights = get_gauss_hermite(m)
     end
-    coef[1] = c1 * c2 + c2 * a[1] * b[1] - p
 
-    xs = _feasible_roots(coef)
-    return _best_root(p, xs)
-end
+    c = zeros(Float64, degree)
+    std1 = std(d1)
+    std2 = std(d2)
 
-"""
-    _invrule_fallback(p::Float64, d1, d2; n::Int, kwargs...)
-
-Discrete case.
-"""
-function _invrule_fallback(p::Float64, d1::DUD, d2::DUD; n::Int, kwargs...)
-    max1 = maximum(d1)
-    max2 = maximum(d2)
-    max1 = isinf(max1) ? quantile(d1, prevfloat(1.0)) : max1
-    max2 = isinf(max2) ? quantile(d2, prevfloat(1.0)) : max2
-
-    min1 = minimum(d1)
-    min2 = minimum(d2)
-
-    s1 = std(d1)
-    s2 = std(d2)
-
-    A = Int(min1):Int(max1)
-    B = Int(min2):Int(max2)
-
-    # z = Φ⁻¹[F(A)], α[0] = -Inf, β[0] = -Inf
-    a = [-Inf; norminvcdf.(cdf.(Ref(d1), A))]
-    b = [-Inf; norminvcdf.(cdf.(Ref(d2), B))]
-
-    c2 = inv(s1 * s2)
-
-    coef = zeros(Float64, n + 1)
-    for k in 1:n
-        @inbounds coef[k+1] = _Gn0_discrete(A, B, a, b, c2, k) / factorial(big(k))
+    # Calculate unified polynomial coefficients c_k
+    fact_k = 1.0
+    for k in 1:degree
+        fact_k *= k
+        coef1 = extract_coef(d1, k, nodes, weights)
+        coef2 = extract_coef(d2, k, nodes, weights)
+        c[k] = (coef1 * coef2) / (fact_k * std1 * std2)
     end
-    coef[1] = -p
 
-    xs = _feasible_roots(coef)
-    return _best_root(p, xs)
-end
+    # Check physical admissibility bounds
+    G_neg1 = eval_poly(c, -1.0)
+    G_pos1 = eval_poly(c, 1.0)
 
-"""
-    _invrule_fallback(p::Float64, d1, d2; n::Int, m::Int, kwargs...)
-
-Mixed case.
-"""
-function _invrule_fallback(p::Float64, d1::DUD, d2::CUD; n::Int, m::Int, kwargs...)
-    s1 = std(d1)
-    s2 = std(d2)
-    min1 = minimum(d1)
-    max1 = maximum(d1)
-    max1 = isinf(max1) ? quantile(d1, prevfloat(1.0)) : max1
-
-    A = Int(min1):Int(max1)
-    a = [-Inf; norminvcdf.(cdf.(d1, A))]
-
-    c2 = inv(s1 * s2)
-
-    coef = zeros(Float64, n + 1)
-    for k in 1:n
-        @inbounds coef[k+1] = _Gn0_mixed(A, a, d2, c2, k, m) / factorial(big(k))
+    if rho_x < G_neg1
+        @warn "Target ρ_x ($rho_x) is below the admissible bound ($G_neg1). Returning -1.0."
+        return -1.0
+    elseif rho_x > G_pos1
+        @warn "Target ρ_x ($rho_x) is above the admissible bound ($G_pos1). Returning 1.0."
+        return 1.0
     end
-    coef[1] = -p
 
-    xs = _feasible_roots(coef)
-    return _best_root(p, xs)
+    # Bisection search to find the root on [-1, 1]
+    low, high = -1.0, 1.0
+    for _ in 1:100
+        mid = (low + high) / 2.0
+        if eval_poly(c, mid) < rho_x
+            low = mid
+        else
+            high = mid
+        end
+        if high - low < 1.0e-12
+            break
+        end
+    end
+
+    return (low + high) / 2.0
 end
 
 """
-    _invrule_fallback(p::Float64, d1, d2; n::Int, m::Int, kwargs...)
+    pearson_match(R_x::AbstractMatrix{Float64}, dists::Vector{<:UnivariateDistribution}; degree::Int=15, m::Int=25)
 
-Mixed case.
-"""
-function _invrule_fallback(p::Float64, d1::CUD, d2::DUD; n::Int, m::Int, kwargs...)
-    return _invrule_fallback(p, d2, d1; n=n, m=m, kwargs...)
-end
-
-"""
-    pearson_match(R::AbstractMatrix{<:Real}, margins; n::Real=12, m::Real=128, kwargs...)
-
-Pairwise compute the Pearson correlation coefficient to be used in a bivariate Gaussian
-copula. Ensures that the resulting matrix is a valid correlation matrix.
-
-# Fields
-
-- `R`: The target correltation matrix of the marginal distributions.
-- `margins`: A list of marginal distributions.
-- `n`: The degree of the polynomial used to estimate the matching correlation.
-- `m`: The number of points used in the hermite polynomial interpolation.
-- `kwargs`: Additional keyword arguments. Currently unused.
-
-# Examples
-
-```julia-repl
-julia> using Distributions
-
-julia> margins = [Beta(2, 3), Uniform(0, 1), Binomial(20, 0.2)];
-
-julia> rho = [
-    1.0 0.3 0.6
-    0.3 1.0 0.4
-    0.6 0.4 1.0
-];
-
-julia> pearson_match(rho, margins)
-3×3 Matrix{Float64}:
- 1.0       0.309111  0.612753
- 0.309111  1.0       0.418761
- 0.612753  0.418761  1.0
-```
+Computes the pairwise Gaussian copula correlation matrix `R_z` corresponding to a target
+Pearson correlation matrix `R_x` for a list of marginal distributions `dists`.
 """
 function pearson_match(
-    R::AbstractMatrix{<:Real}, margins; n::Real=20, m::Real=128, kwargs...
-)
-    d = length(margins)
-    r, s = size(R)
-    (r == s == d) ||
-        throw(DimensionMismatch("The number of margins must be the same size as the correlation matrix."))
+        R_x::AbstractMatrix{Float64},
+        dists::Vector{<:UnivariateDistribution};
+        degree::Int = 20,
+        m::Int = 40
+    )
+    n_dists = length(dists)
+    @assert size(R_x) == (n_dists, n_dists) "R_x must be an $(n_dists)x$(n_dists) matrix"
 
-    n = Int(n)
-    m = Int(m)
+    # 1. Fetch thread-safe precomputed inverse factorials and quadrature rules
+    inv_fact = get_inv_factorials(degree)
 
-    R = SharedMatrix{Float64}(d, d)
+    has_continuous = any(d -> d isa ContinuousUnivariateDistribution, dists)
+    nodes, weights = has_continuous ? get_gauss_hermite(m) : (Float64[], Float64[])
 
-    Base.Threads.@threads for (i, j) in _idx_subsets2(d)
-        @inbounds R[i, j] = pearson_match(R[i, j], margins[i], margins[j]; n=n, m=m)
+    # 2. Precompute standard deviations and expansion coefficients C_i(k) in parallel O(N)
+    stds = zeros(Float64, n_dists)
+    C = Matrix{Float64}(undef, n_dists, degree)
+
+    Threads.@threads for i in 1:n_dists
+        stds[i] = std(dists[i])
+        for k in 1:degree
+            C[i, k] = extract_coef(dists[i], k, nodes, weights)
+        end
     end
 
-    S = sdata(R)
+    # 3. Construct upper-triangle pair indices
+    pairs = Vector{Tuple{Int, Int}}()
+    sizehint!(pairs, div(n_dists * (n_dists - 1), 2))
+    for i in 1:n_dists
+        for j in (i + 1):n_dists
+            push!(pairs, (i, j))
+        end
+    end
 
-    _project_psd!(S, sqrt(eps()))
-    _cov2cor!(S)
+    # 4. Parallel root-finding across pairs
+    R_z = Matrix{Float64}(undef, n_dists, n_dists)
+    for i in 1:n_dists
+        R_z[i, i] = 1.0
+    end
 
-    return Symmetric(S)
+    Threads.@threads for idx in 1:length(pairs)
+        i, j = pairs[idx]
+        target_rho = R_x[i, j]
+        scale = 1.0 / (stds[i] * stds[j])
+
+        # Endpoint checks for bounds
+        poly_pos1 = 0.0
+        poly_neg1 = 0.0
+        for k in 1:degree
+            c_k = C[i, k] * C[j, k] * inv_fact[k] * scale
+            poly_pos1 += c_k
+            poly_neg1 += c_k * (isodd(k) ? -1.0 : 1.0)
+        end
+
+        if target_rho <= poly_neg1
+            R_z[i, j] = R_z[j, i] = -1.0
+            continue
+        elseif target_rho >= poly_pos1
+            R_z[i, j] = R_z[j, i] = 1.0
+            continue
+        end
+
+        # Bisection search
+        low, high = -1.0, 1.0
+        for _ in 1:60
+            mid = (low + high) * 0.5
+            val = 0.0
+            mid_pow = 1.0
+            for k in 1:degree
+                mid_pow *= mid
+                c_k = C[i, k] * C[j, k] * inv_fact[k] * scale
+                val += c_k * mid_pow
+            end
+
+            if val < target_rho
+                low = mid
+            else
+                high = mid
+            end
+        end
+
+        rho_z_ij = (low + high) * 0.5
+        R_z[i, j] = R_z[j, i] = rho_z_ij
+    end
+
+    return R_z
 end

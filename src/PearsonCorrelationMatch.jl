@@ -8,11 +8,12 @@ export pearson_match, pearson_bounds
 include("common.jl")
 include("defaults.jl")
 include("match.jl")
+include("exact_match.jl")
 include("bounds.jl")
 
 function __init__()
     # Pre-warm common quadrature node counts so first calls don't hit the lock
-    for m in (20, 40, 60)
+    for m in (22, 27, 30, 33, 38, 45)
         get_gauss_hermite(m)
     end
     return nothing

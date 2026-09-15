@@ -6,6 +6,7 @@ using LinearAlgebra
 export pearson_match, pearson_bounds
 
 include("common.jl")
+include("defaults.jl")
 include("match.jl")
 include("bounds.jl")
 

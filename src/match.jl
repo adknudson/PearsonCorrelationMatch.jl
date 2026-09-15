@@ -2,24 +2,31 @@
 Determines the Gaussian copula parameter ρ_z to match the target Pearson correlation ρ_x
 between two arbitrary marginal distributions (Continuous or Discrete).
 """
-function pearson_match(rho_x::Float64, d1::UnivariateDistribution, d2::UnivariateDistribution; degree::Int = 20, m::Int = 40)
+function pearson_match(
+        rho_x::Float64,
+        d1::UnivariateDistribution,
+        d2::UnivariateDistribution;
+        degree::Int = default_degree(d1, d2),
+        m::Int = default_m(d1, d2),
+        maxiters::Int = 100,
+        atol::Float64 = 1.0e-12
+    )
     # Generate quadrature rules if at least one variable is continuous
     nodes, weights = Float64[], Float64[]
     if d1 isa ContinuousUnivariateDistribution || d2 isa ContinuousUnivariateDistribution
         nodes, weights = get_gauss_hermite(m)
     end
 
-    c = zeros(Float64, degree)
-    std1 = std(d1)
-    std2 = std(d2)
+    std1, std2 = std(d1), std(d2)
+    scale = 1.0 / (std1 * std2)
+    inv_fact = get_inv_factorials(degree)
 
-    # Calculate unified polynomial coefficients c_k
-    fact_k = 1.0
+    # Precompute coefficients C_k
+    c = zeros(Float64, degree)
     for k in 1:degree
-        fact_k *= k
         coef1 = extract_coef(d1, k, nodes, weights)
         coef2 = extract_coef(d2, k, nodes, weights)
-        c[k] = (coef1 * coef2) / (fact_k * std1 * std2)
+        c[k] = coef1 * coef2 * inv_fact[k] * scale
     end
 
     # Check physical admissibility bounds
@@ -36,19 +43,19 @@ function pearson_match(rho_x::Float64, d1::UnivariateDistribution, d2::Univariat
 
     # Bisection search to find the root on [-1, 1]
     low, high = -1.0, 1.0
-    for _ in 1:100
-        mid = (low + high) / 2.0
+    for _ in 1:maxiters
+        mid = (low + high) * 0.5
         if eval_poly(c, mid) < rho_x
             low = mid
         else
             high = mid
         end
-        if high - low < 1.0e-12
+        if high - low < atol
             break
         end
     end
 
-    return (low + high) / 2.0
+    return (low + high) * 0.5
 end
 
 """
@@ -60,52 +67,54 @@ Pearson correlation matrix `R_x` for a list of marginal distributions `dists`.
 function pearson_match(
         R_x::AbstractMatrix{Float64},
         dists::Vector{<:UnivariateDistribution};
-        degree::Int = 20,
-        m::Int = 40
+        degree::Int = default_degree(dists),
+        m::Int = default_m(dists),
+        maxiters::Int = 100,
+        atol::Float64 = 1.0e-12
     )
     n_dists = length(dists)
     @assert size(R_x) == (n_dists, n_dists) "R_x must be an $(n_dists)x$(n_dists) matrix"
 
-    # 1. Fetch thread-safe precomputed inverse factorials and quadrature rules
-    inv_fact = get_inv_factorials(degree)
+    # Helper function to check if a pair has an exact dispatch overload
+    has_exact_match(d1::Type, d2::Type) = hasmethod(pearson_match, Tuple{Float64, d1, d2})
 
+    # Precompute standard deviations & polynomial expansion coefficients in parallel
+    inv_fact = get_inv_factorials(degree)
     has_continuous = any(d -> d isa ContinuousUnivariateDistribution, dists)
     nodes, weights = has_continuous ? get_gauss_hermite(m) : (Float64[], Float64[])
 
-    # 2. Precompute standard deviations and expansion coefficients C_i(k) in parallel O(N)
     stds = zeros(Float64, n_dists)
     C = Matrix{Float64}(undef, n_dists, degree)
 
     Threads.@threads for i in 1:n_dists
         stds[i] = std(dists[i])
+        # Skip coefficient extraction if distribution is purely part of exact pairs
         for k in 1:degree
             C[i, k] = extract_coef(dists[i], k, nodes, weights)
         end
     end
 
-    # 3. Construct upper-triangle pair indices
-    pairs = Vector{Tuple{Int, Int}}()
-    sizehint!(pairs, div(n_dists * (n_dists - 1), 2))
-    for i in 1:n_dists
-        for j in (i + 1):n_dists
-            push!(pairs, (i, j))
-        end
-    end
-
-    # 4. Parallel root-finding across pairs
+    pairs = [(i, j) for i in 1:n_dists for j in (i + 1):n_dists]
     R_z = Matrix{Float64}(undef, n_dists, n_dists)
     for i in 1:n_dists
         R_z[i, i] = 1.0
     end
 
-    Threads.@threads for idx in 1:length(pairs)
+    Threads.@threads for idx in eachindex(pairs)
         i, j = pairs[idx]
+        d1, d2 = dists[i], dists[j]
         target_rho = R_x[i, j]
-        scale = 1.0 / (stds[i] * stds[j])
 
-        # Endpoint checks for bounds
-        poly_pos1 = 0.0
-        poly_neg1 = 0.0
+        # 1. Fast Path: Dispatch to exact closed-form method if overload exists
+        if has_exact_match(typeof(d1), typeof(d2))
+            rho_z_ij = pearson_match(target_rho, d1, d2)
+            R_z[i, j] = R_z[j, i] = rho_z_ij
+            continue
+        end
+
+        # 2. Slow Path: Inexact polynomial approximation & root-finding
+        scale = 1.0 / (stds[i] * stds[j])
+        poly_pos1, poly_neg1 = 0.0, 0.0
         for k in 1:degree
             c_k = C[i, k] * C[j, k] * inv_fact[k] * scale
             poly_pos1 += c_k
@@ -120,22 +129,24 @@ function pearson_match(
             continue
         end
 
-        # Bisection search
         low, high = -1.0, 1.0
-        for _ in 1:60
+        for _ in 1:maxiters
             mid = (low + high) * 0.5
             val = 0.0
             mid_pow = 1.0
             for k in 1:degree
                 mid_pow *= mid
-                c_k = C[i, k] * C[j, k] * inv_fact[k] * scale
-                val += c_k * mid_pow
+                val += (C[i, k] * C[j, k] * inv_fact[k] * scale) * mid_pow
             end
 
             if val < target_rho
                 low = mid
             else
                 high = mid
+            end
+
+            if high - low < atol
+                break
             end
         end
 

@@ -13,7 +13,7 @@ include("bounds.jl")
 
 function __init__()
     # Pre-warm common quadrature node counts so first calls don't hit the lock
-    for m in (22, 27, 30, 33, 38, 45)
+    for m in (22, 25, 30, 40)
         get_gauss_hermite(m)
     end
     return nothing

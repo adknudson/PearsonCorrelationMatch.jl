@@ -24,4 +24,5 @@ jobs:
         with:
           julia-version: ${{ matrix.version }}
           script: "benchmark/benchmarks.jl"
+          extra-pkgs: "Distributions"
           job-summary: true

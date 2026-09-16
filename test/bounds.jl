@@ -1,8 +1,10 @@
 using Test
 using Distributions
+using Distributions
 using PearsonCorrelationMatch
 
 
+@testset verbose = true "Correlation Bounds" begin
 @testset verbose = true "Correlation Bounds" begin
     @testset "Uniform-Uniform" begin
         U = Uniform(0, 1)

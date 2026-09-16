@@ -104,4 +104,29 @@ using PearsonCorrelationMatch
             @test pearson_match(p, B, N) ≈ G(p) atol = 0.005
         end
     end
+
+    @testset "Match Correlation Matrix" begin
+        margins = [dA, dB, dC]
+
+        r0 = [
+            1.0 -0.59 0.68
+            -0.59  1.0 0.19
+            0.68  0.19 1.0
+        ]
+
+        @test pearson_match(1.0, dA, dA) ≈ 1.0
+        @test pearson_match(1.0, dB, dB) ≈ 1.0
+        @test pearson_match(1.0, dC, dC) ≈ 1.0
+
+        r = pearson_match(r0, margins)
+
+        @test r[1, 1] ≈ 1.0
+        @test r[1, 2] ≈ pearson_match(r0[1, 2], dA, dB)
+        @test r[1, 3] ≈ pearson_match(r0[1, 3], dA, dC)
+
+        @test r[2, 2] ≈ 1.0
+        @test r[2, 3] ≈ pearson_match(r0[2, 3], dB, dC)
+
+        @test r[3, 3] ≈ 1.0
+    end
 end

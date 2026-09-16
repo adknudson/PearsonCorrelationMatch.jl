@@ -31,10 +31,10 @@ julia> using Distributions
 julia> d1 = Exponential(3.14); d2 = NegativeBinomial(20, 0.2);
 
 julia> pearson_bounds(d1, d2)
-(lower = -0.8553947509241561, upper = 0.9413665073003636)
+(lower = -0.8507790644977721, upper = 0.9315140946532414)
 ```
 """
-function pearson_bounds(d1::UD, d2::UD; n::Real=20, m::Real=128, kwargs...)
+function pearson_bounds(d1::UnivariateDistribution, d2::UnivariateDistribution; n::Real = 20, m::Real = 128, kwargs...)
     n = Int(n)
     m = Int(m)
 
@@ -57,11 +57,11 @@ function pearson_bounds(d1::UD, d2::UD; n::Real=20, m::Real=128, kwargs...)
     pl = clamp(pl, -1, 1)
     pu = clamp(pu, -1, 1)
 
-    return (lower=Float64(pl), upper=Float64(pu))
+    return (lower = Float64(pl), upper = Float64(pu))
 end
 
 """
-    pearson_bounds(margins; n::Real=12, m::Real=128, kwargs...)
+    pearson_bounds(margins; n::Real=20, m::Real=128, kwargs...)
 
 Determine the range of admissible Pearson correlations pairwise between a list of distributions.
 
@@ -83,38 +83,32 @@ julia> lower, upper = pearson_bounds(margins);
 
 julia> lower
 3×3 Matrix{Float64}:
-  1.0       -0.855395  -0.488737
- -0.855395   1.0       -0.704403
- -0.488737  -0.704403   1.0
+ -0.644934  -0.850779  -0.488737
+ -0.850779  -0.983832  -0.70092
+ -0.488737  -0.70092   -0.367879
 
 julia> upper
 3×3 Matrix{Float64}:
- 1.0       0.941367  0.939671
- 0.941367  1.0       0.815171
- 0.939671  0.815171  1.0
+ 1.0       0.931514  0.939671
+ 0.931514  0.960926  0.80747
+ 0.939671  0.80747   1.0
 ```
 """
-function pearson_bounds(margins; n::Real=20, m::Real=128, kwargs...)
+function pearson_bounds(margins; n::Real = 20, m::Real = 128, kwargs...)
     d = length(margins)
     n = Int(n)
     m = Int(m)
 
-    lower = SharedMatrix{Float64}(d, d)
-    upper = SharedMatrix{Float64}(d, d)
+    lower = Matrix{Float64}(undef, d, d)
+    upper = Matrix{Float64}(undef, d, d)
 
-    Base.Threads.@threads for (i, j) in _idx_subsets2(d)
-        l, u = pearson_bounds(margins[i], margins[j]; n=n, m=m, kwargs...)
-        @inbounds lower[i, j] = l
-        @inbounds upper[i, j] = u
+    for i in 1:d, j in i:d
+        d1 = margins[i]
+        d2 = margins[j]
+        l, u = pearson_bounds(d1, d2; n = n, m = m, kwargs...)
+        lower[i, j] = lower[j, i] = l
+        upper[i, j] = upper[j, i] = u
     end
 
-    L = sdata(lower)
-    _symmetric!(L)
-    _set_diag1!(L)
-
-    U = sdata(upper)
-    _symmetric!(U)
-    _set_diag1!(U)
-
-    return (lower=L, upper=U)
+    return (lower = lower, upper = upper)
 end

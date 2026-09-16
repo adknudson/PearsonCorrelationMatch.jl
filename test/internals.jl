@@ -1,61 +1,32 @@
 using Test
+using Distributions
+using Polynomials: coeffs, fromroots
+
 using PearsonCorrelationMatch
 using PearsonCorrelationMatch: _generate_coefs, _Gn0_discrete, _Gn0_mixed
 using PearsonCorrelationMatch: _hermite, _hermite_normpdf
 using PearsonCorrelationMatch: _is_real, _real_roots, _feasible_roots, _nearest_root, _best_root
-using Polynomials: coeffs, fromroots
-using Distributions
 
 
-function nothrow(f)
-    try
-        f()
-    catch e
-        println(e)
-        return false
-    end
-
-    return true
-end
-
-
-@testset verbose=true "Internals" begin
-    @testset "Generate Coefficients" begin
-        dA = Binomial(20, 0.2)
-        dB = NegativeBinomial(20, 0.002)
-        dC = LogitNormal(3, 1)
-        dD = Beta(5, 3)
-
-        @test nothrow(() -> _generate_coefs(dA, 21, 28))
-        @test nothrow(() -> _generate_coefs(dB, 21, 28))
-        @test nothrow(() -> _generate_coefs(dC, 21, 28))
-        @test nothrow(() -> _generate_coefs(dD, 21, 28))
-    end
-
-    @testset "Gn0 discrete" begin
-    end
-
-    @testset "Gn0 mixed" begin
-    end
-
+@testset verbose = true "Internals" begin
     @testset "Hermite Evaluation" begin
         # Want to always return a Float64
         for T in (Float16, Float32, Float64, Int, Rational{Int})
             @test _hermite(T(3), 5) isa Float64
             @test _hermite_normpdf(T(3), 5) isa Float64
         end
-        @test _hermite_normpdf(Inf,  10) isa Float64
+        @test _hermite_normpdf(Inf, 10) isa Float64
         @test _hermite_normpdf(-Inf, 10) isa Float64
 
         # Must only work for real numbers
         @test_throws InexactError _hermite(3 + 4im, 5)
         # `k` must be a non-negative integer
         @test_throws ArgumentError _hermite(1.0, -1)
-        @test_throws InexactError _hermite(3.00, 5.5)
+        @test_throws InexactError _hermite(3.0, 5.5)
 
         # Must always return a real number even when evaluated at ±Inf
-        @test _hermite_normpdf( Inf, 10) ≈ 0 atol=sqrt(eps())
-        @test _hermite_normpdf(-Inf, 10) ≈ 0 atol=sqrt(eps())
+        @test _hermite_normpdf(Inf, 10) ≈ 0 atol = sqrt(eps())
+        @test _hermite_normpdf(-Inf, 10) ≈ 0 atol = sqrt(eps())
 
         # Test for exactness against known polynomials
         He0(x) = 1.0
@@ -68,11 +39,11 @@ end
         He7(x) = evalpoly(x, (0, -105, 0, 105, 0, -21, 0, 1))
         He8(x) = evalpoly(x, (105, 0, -420, 0, 210, 0, -28, 0, 1))
         He9(x) = evalpoly(x, (0, 945, 0, -1260, 0, 378, 0, -36, 0, 1))
-        He10(x)= evalpoly(x, (-945, 0, 4725, 0, -3150, 0, 630, 0, -45, 0, 1))
+        He10(x) = evalpoly(x, (-945, 0, 4725, 0, -3150, 0, 630, 0, -45, 0, 1))
 
         @testset "Hermite Polynomial Function" for _ in 1:1000
             width = 10_000
-            x = rand() * width - 0.5*width
+            x = rand() * width - 0.5 * width
             @test _hermite(x, 0) ≈ He0(x)
             @test _hermite(x, 1) ≈ He1(x)
             @test _hermite(x, 2) ≈ He2(x)

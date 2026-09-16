@@ -1,9 +1,14 @@
+const _sqrt2::Float64 = sqrt(2.0)
+const _invsqrtπ::Float64 = inv(sqrt(π))
+
 """
+    _generate_coefs(dist, n, m)
+
 Equation (25) of the reference paper.
 """
-function _generate_coefs(F::UD, n::Int, m::Int)
+function _generate_coefs(F::UnivariateDistribution, n::Int, m::Int)
     t, w = gausshermite(m)
-    t *= sqrt2
+    t *= _sqrt2
 
     u = normcdf.(t)
 
@@ -17,7 +22,7 @@ function _generate_coefs(F::UD, n::Int, m::Int)
     for i in eachindex(a)
         k = i - 1
         S = sum(w .* _hermite.(t, k) .* X)
-        @inbounds a[i] = invsqrtπ * S / factorial(big(k))
+        @inbounds a[i] = _invsqrtπ * S / factorial(big(k))
     end
 
     return a
@@ -39,9 +44,9 @@ function _Gn0_discrete(A, B, a, b, invs1s2, n::Int)
 
     for r in 1:M, s in 1:N
         r00 = _hermite_normpdf(a[r], n - 1) * _hermite_normpdf(b[s], n - 1)
-        r10 = _hermite_normpdf(a[r+1], n - 1) * _hermite_normpdf(b[s], n - 1)
-        r01 = _hermite_normpdf(a[r], n - 1) * _hermite_normpdf(b[s+1], n - 1)
-        r11 = _hermite_normpdf(a[r+1], n - 1) * _hermite_normpdf(b[s+1], n - 1)
+        r10 = _hermite_normpdf(a[r + 1], n - 1) * _hermite_normpdf(b[s], n - 1)
+        r01 = _hermite_normpdf(a[r], n - 1) * _hermite_normpdf(b[s + 1], n - 1)
+        r11 = _hermite_normpdf(a[r + 1], n - 1) * _hermite_normpdf(b[s + 1], n - 1)
 
         accu += A[r] * B[s] * (r11 + r00 - r01 - r10)
     end
@@ -62,11 +67,11 @@ function _Gn0_mixed(A, a, F, invs1s2, n::Int, m::Int)
     accu = zero(Float64)
 
     for r in 1:M
-        accu += A[r] * (_hermite_normpdf(a[r+1], n - 1) - _hermite_normpdf(a[r], n - 1))
+        accu += A[r] * (_hermite_normpdf(a[r + 1], n - 1) - _hermite_normpdf(a[r], n - 1))
     end
 
     t, w = gausshermite(m)
-    t *= sqrt2
+    t *= _sqrt2
     u = normcdf.(t)
 
     # If u[i] is 0 or 1, then quantile(F, u[i]) has the potential to be ±∞
@@ -82,12 +87,14 @@ function _Gn0_mixed(A, a, F, invs1s2, n::Int, m::Int)
         S += w[k] * _hermite(t[k], n) * X[k]
     end
 
-    S *= invsqrtπ
+    S *= _invsqrtπ
 
     return -invs1s2 * accu * S
 end
 
 """
+    _hermite(x, k)
+
 The "probabilist's" Hermite polynomial of degree ``k``.
 """
 function _hermite(x::Float64, k::Int)
@@ -180,91 +187,4 @@ function _best_root(p, roots)
     length(roots) == 1 && return clamp(first(roots), -1, 1)
     length(roots) > 1 && return _nearest_root(p, roots)
     return p < 0 ? nextfloat(-one(Float64)) : prevfloat(one(Float64))
-end
-
-"""
-    _idx_subsets2(d)
-
-Equivalent to IterTools.subsets(1:d, Val(2)), but allocates all pairs for use in parallel
-threads.
-"""
-function _idx_subsets2(d::Int)
-    n = d * (d - 1) ÷ 2
-    xs = Vector{Tuple}(undef, n)
-
-    k = 1
-    for i in 1:d-1
-        for j in i+1:d
-            xs[k] = (i, j)
-            k += 1
-        end
-    end
-
-    return xs
-end
-
-"""
-    _symmetric!(X)
-
-Copy the upper part of a matrix to its lower half.
-"""
-function _symmetric!(X::AbstractMatrix{T}) where {T}
-    m, n = size(X)
-    m == n || throw(DimensionMismatch("Input matrix must be square"))
-
-    for i in 1:n-1
-        for j in i+1:n
-            @inbounds X[j, i] = X[i, j]
-        end
-    end
-
-    return X
-end
-
-"""
-    _set_diag1!(X)
-
-Set the diagonal elements of a square matrix to `1`.
-"""
-function _set_diag1!(X::AbstractMatrix{T}) where {T}
-    m, n = size(X)
-    m == n || throw(DimensionMismatch("Input matrix must be square"))
-
-    @inbounds for i in diagind(X)
-        X[i] = one(T)
-    end
-
-    return X
-end
-
-"""
-    _project_psd(X, ϵ)
-
-Project `X` onto the set of PSD matrixes.
-"""
-function _project_psd!(X, ϵ)
-    λ, P = eigen(Symmetric(X); sortby=x -> -x)
-    replace!(x -> max(x, ϵ), λ)
-    X .= P * Diagonal(λ) * P'
-    return X
-end
-
-"""
-    _cov2cor!(X)
-
-Project `X` onto the set of correlation matrices.
-"""
-function _cov2cor!(X::AbstractMatrix)
-    D = sqrt(inv(Diagonal(X)))
-    lmul!(D, X)
-    rmul!(X, D)
-    _set_diag1!(X)
-    _symmetric!(X)
-    return X
-end
-
-function _cov2cor!(X::Symmetric)
-    _symmetric!(X.data)
-    _cov2cor!(X.data)
-    return X
 end

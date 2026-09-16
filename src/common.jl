@@ -14,9 +14,9 @@ function _generate_coefs(F::UnivariateDistribution, n::Int, m::Int)
 
     # If u[i] is 0 or 1, then quantile(F, u[i]) has the potential to be ±∞
     # Apply a small correction here to ensure that the values are finite
-    clamp!(u, nextfloat(0.0), prevfloat(1.0))
+    clamp!(u, 1.0e-15, 1.0 - 1.0e-15)
 
-    X = quantile.(Ref(F), u)
+    X = quantile.(F, u)
 
     a = zeros(Float64, n + 1)
     for i in eachindex(a)
@@ -76,7 +76,7 @@ function _Gn0_mixed(A, a, F, invs1s2, n::Int, m::Int)
 
     # If u[i] is 0 or 1, then quantile(F, u[i]) has the potential to be ±∞
     # Apply a small correction here to ensure that the values are finite
-    clamp!(u, nextfloat(0.0), prevfloat(1.0))
+    clamp!(u, 1.0e-15, 1.0 - 1.0e-15)
 
     X = quantile.(F, u)
     any(isinf, X) && error("Values must be real and finite")

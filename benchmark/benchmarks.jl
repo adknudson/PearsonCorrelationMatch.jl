@@ -66,5 +66,3 @@ end
 SUITE["AllPairs"] = @benchmarkable run_all_pairs!(R, 0.32, $d_all) setup = (R = zeros(Float64, length($d_all), length($d_all)))
 SUITE["ContinuousPairs"] = @benchmarkable run_all_pairs!(R, 0.32, $d_c) setup = (R = zeros(Float64, length($d_c), length($d_c)))
 SUITE["DiscretePairs"] = @benchmarkable run_all_pairs!(R, 0.32, $d_d) setup = (R = zeros(Float64, length($d_d), length($d_d)))
-
-results = run(SUITE, verbose = true)

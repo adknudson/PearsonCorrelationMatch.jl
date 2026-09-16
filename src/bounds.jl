@@ -2,15 +2,30 @@
 Computes the theoretical lower and upper bounds of the Pearson correlation coefficient
 between two arbitrary marginal distributions using the polynomial approximation.
 """
-function pearson_bounds(d1::UnivariateDistribution, d2::UnivariateDistribution; degree::Int = 20, m::Int = 40)
+function pearson_bounds(
+        d1::UnivariateDistribution,
+        d2::UnivariateDistribution;
+        degree::Int = 20,
+        m::Int = 40,
+        propagate_nan::Bool = false
+    )
     # Generate quadrature rules if at least one variable is continuous
     nodes, weights = Float64[], Float64[]
     if d1 isa ContinuousUnivariateDistribution || d2 isa ContinuousUnivariateDistribution
         nodes, weights = get_gauss_hermite(m)
     end
 
-    std1 = std(d1)
-    std2 = std(d2)
+    std1, std2 = std(d1), std(d2)
+    if isnan(std1) || isnan(std2)
+        propagate_nan && return (NaN, NaN)
+        throw(
+            ArgumentError(
+                "Both distributions are required to have a finite variance:\n" *
+                    "  Var[$(d1)] = $(std1^2)\n" *
+                    "  Var[$(d2)] = $(std2^2)"
+            )
+        )
+    end
 
     max_rho = 0.0
     min_rho = 0.0
@@ -37,4 +52,22 @@ function pearson_bounds(d1::UnivariateDistribution, d2::UnivariateDistribution; 
     max_rho = clamp(max_rho, -1.0, 1.0)
 
     return (min_rho, max_rho)
+end
+
+
+function pearson_bounds(margins; degree::Real = 20, m::Real = 40, kwargs...)
+    d = length(margins)
+
+    lower = Matrix{Float64}(undef, d, d)
+    upper = Matrix{Float64}(undef, d, d)
+
+    for i in 1:d, j in i:d
+        d1 = margins[i]
+        d2 = margins[j]
+        l, u = pearson_bounds(d1, d2; degree = degree, m = m, kwargs...)
+        lower[i, j] = lower[j, i] = l
+        upper[i, j] = upper[j, i] = u
+    end
+
+    return (lower = lower, upper = upper)
 end

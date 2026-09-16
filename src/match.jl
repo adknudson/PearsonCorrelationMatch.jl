@@ -9,7 +9,8 @@ function pearson_match(
         degree::Int = default_degree(d1, d2),
         m::Int = default_m(d1, d2),
         maxiters::Int = 100,
-        atol::Float64 = 1.0e-12
+        atol::Float64 = 1.0e-12,
+        propagate_nan::Bool = false
     )
     # Generate quadrature rules if at least one variable is continuous
     nodes, weights = Float64[], Float64[]
@@ -18,7 +19,19 @@ function pearson_match(
     end
 
     std1, std2 = std(d1), std(d2)
+    if isnan(std1) || isnan(std2)
+        propagate_nan && return NaN
+        throw(
+            ArgumentError(
+                "Both distributions are required to have a finite variance:\n" *
+                    "  Var[$(d1)] = $(std1^2)\n" *
+                    "  Var[$(d2)] = $(std2^2)"
+            )
+        )
+    end
+
     scale = 1.0 / (std1 * std2)
+
     inv_fact = get_inv_factorials(degree)
 
     # Precompute coefficients C_k
@@ -70,7 +83,8 @@ function pearson_match(
         degree::Int = default_degree(dists),
         m::Int = default_m(dists),
         maxiters::Int = 100,
-        atol::Float64 = 1.0e-12
+        atol::Float64 = 1.0e-12,
+        propagate_nan::Bool = false
     )
     n_dists = length(dists)
     @assert size(R_x) == (n_dists, n_dists) "R_x must be an $(n_dists)x$(n_dists) matrix"

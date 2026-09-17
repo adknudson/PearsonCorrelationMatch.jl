@@ -8,6 +8,8 @@ const GLOBAL_GH_CACHE = Dict{Int, Tuple{Vector{Float64}, Vector{Float64}}}()
 const CACHE_LOCK = ReentrantLock()
 
 """
+    get_inv_factorials(max_k)
+
 Retrieves precomputed 1/k! values up to degree `max_k`.
 Dynamically extends the global vector in a thread-safe manner if max_k > current length.
 """
@@ -29,7 +31,9 @@ end
 
 
 """
-Evaluates the k-th order probabilist's Hermite polynomial at x.
+    probabilist_hermite(k, x)
+
+Evaluates the `k`-th order probabilist's Hermite polynomial at `x`.
 """
 function probabilist_hermite(k::Int, x::Float64)
     k < 0 && return 0.0
@@ -48,6 +52,8 @@ function probabilist_hermite(k::Int, x::Float64)
 end
 
 """
+    gauss_hermite_prob(m)
+
 Generates m-point Gauss-Hermite nodes and weights for integrating against
 the standard normal PDF: ∫ f(x)ϕ(x)dx ≈ Σ w_i f(t_i).
 Uses the Golub-Welsch algorithm.
@@ -62,6 +68,8 @@ function gauss_hermite_prob(m::Int)
 end
 
 """
+    get_gauss_hermite(m)
+
 Retrieves or computes Gauss-Hermite nodes and weights for m points.
 Dynamically updates the global dictionary in a thread-safe manner.
 """
@@ -79,10 +87,25 @@ function get_gauss_hermite(m::Int)
     end
 end
 
+
 """
-Computes the k-th order expansion coefficient for a continuous distribution.
-Uses m-point Gauss-Hermite quadrature.
+    extract_coef(d::ContinuousUnivariateDistribution, k::Int, nodes::Vector{Float64}, weights::Vector{Float64})
+    extract_coef(d::DiscreteUnivariateDistribution, k::Int, ::Vector{Float64}, ::Vector{Float64})
+
+Computes the `k`-th Hermite polynomial expansion coefficient `C_i(k)` for marginal distribution `d`.
+
+## Arguments
+- `d::UnivariateDistribution`: Marginal distribution object.
+- `k::Int`: Polynomial expansion order (`k ≥ 1`).
+- `nodes::Vector{Float64}`: Gauss-Hermite integration nodes (used only for continuous distributions).
+- `weights::Vector{Float64}`: Gauss-Hermite integration weights (used only for continuous distributions).
+
+## Details
+- For continuous distributions, uses Gauss-Hermite quadrature.
+- For discrete distributions, evaluates exact piecewise boundary differences across cumulative probabilities.
 """
+function extract_coef end
+
 function extract_coef(d::ContinuousUnivariateDistribution, k::Int, nodes::Vector{Float64}, weights::Vector{Float64})
     val = 0.0
     for i in eachindex(nodes)
@@ -98,10 +121,6 @@ function extract_coef(d::ContinuousUnivariateDistribution, k::Int, nodes::Vector
     return val
 end
 
-"""
-Computes the k-th order expansion coefficient for a discrete distribution.
-Evaluates the piecewise constant differences exactly using Taylor expansion terms.
-"""
 function extract_coef(d::DiscreteUnivariateDistribution, k::Int, ::Vector{Float64}, ::Vector{Float64})
     lb = isinf(minimum(d)) ? floor(Int, quantile(d, 1.0e-10)) : minimum(d)
     ub = isinf(maximum(d)) ? ceil(Int, quantile(d, 1.0 - 1.0e-10)) : maximum(d)
@@ -136,7 +155,9 @@ function extract_coef(d::DiscreteUnivariateDistribution, k::Int, ::Vector{Float6
 end
 
 """
-Evaluates the polynomial at z given its coefficients.
+    eval_poly(coefs, z)
+
+Evaluates the polynomial at `z` given its coefficients.
 """
 function eval_poly(coefs::Vector{Float64}, z::Float64)
     val = 0.0

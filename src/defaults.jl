@@ -1,8 +1,12 @@
 """
     default_degree(d::UnivariateDistribution)
+    default_degree(d1::UnivariateDistribution, d2::UnivariateDistribution)
+    default_degree(dists::Vector{<:UnivariateDistribution})
 
-Returns the recommended polynomial truncation degree n for a given distribution type.
+Computes the recommended polynomial expansion degree `n` based on marginal distribution types.
 """
+function default_degree end
+
 default_degree(::UnivariateDistribution) = 15
 default_degree(::ContinuousUnivariateDistribution) = 15
 default_degree(::DiscreteUnivariateDistribution) = 20
@@ -11,10 +15,13 @@ default_degree(dists::Vector{<:UnivariateDistribution}) = maximum(default_degree
 
 """
     default_m(d::UnivariateDistribution)
+    default_m(d1::UnivariateDistribution, d2::UnivariateDistribution)
     default_m(dists::Vector{<:UnivariateDistribution})
 
-Returns the recommended number of Gauss-Hermite points m.
+Computes the recommended number of Gauss-Hermite quadrature points \$m\$ based on marginal distribution types.
 """
+function default_m end
+
 function default_m(d::UnivariateDistribution)
     n = default_degree(d)
     return max(25, round(Int, 1.5 * n))

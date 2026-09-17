@@ -1,6 +1,24 @@
 """
-Determines the Gaussian copula parameter ρ_z to match the target Pearson correlation ρ_x
-between two arbitrary marginal distributions (Continuous or Discrete).
+    pearson_match(rho_x, d1, d2; kwargs...)
+
+Determines the Gaussian copula correlation parameter `rho_z` required to achieve a target
+Pearson correlation `rho_x` between two marginal distributions `d1` and `d2`.
+
+## Arguments
+
+- `rho_x`: Target Pearson correlation coefficient.
+- `d1`: First marginal distribution.
+- `d2`: Second marginal distribution.
+
+## Keyword Arguments
+
+- `degree::Int`: Truncation degree for polynomial approximation (default: `default_degree(d1, d2)`).
+- `m::Int`: Number of Gauss-Hermite integration points (default: `default_m(d1, d2)`).
+- `maxiters::Int`: The maximum number of iterations in the polynomial root search (default: `100`).
+- `atol::Real`: The absolute tolerance used as a stopping condition in the polynomial root search (default: `1e-12`).
+- `check_variance::Bool`: Checks the requirement that marginal distributions have finite variance (default: `true`).
+  If `true`, an error is thrown if `d1` or `d2` has non-finite or undefined variance.
+  Otherwise, if `false`, non-finite variances result in `NaN` values being propagated.
 """
 function pearson_match(
         rho_x::Float64,
@@ -10,7 +28,7 @@ function pearson_match(
         m::Int = default_m(d1, d2),
         maxiters::Int = 100,
         atol::Float64 = 1.0e-12,
-        propagate_nan::Bool = false
+        check_variance::Bool = true
     )
     # Generate quadrature rules if at least one variable is continuous
     nodes, weights = Float64[], Float64[]
@@ -19,8 +37,8 @@ function pearson_match(
     end
 
     std1, std2 = std(d1), std(d2)
-    if isnan(std1) || isnan(std2)
-        propagate_nan && return NaN
+    if !isfinite(std1) || !isfinite(std2)
+        check_variance || return NaN
         throw(
             ArgumentError(
                 "Both distributions are required to have a finite variance:\n" *
@@ -31,7 +49,6 @@ function pearson_match(
     end
 
     scale = 1.0 / (std1 * std2)
-
     inv_fact = get_inv_factorials(degree)
 
     # Precompute coefficients C_k
@@ -72,10 +89,31 @@ function pearson_match(
 end
 
 """
-    pearson_match(R_x::AbstractMatrix{Float64}, dists::Vector{<:UnivariateDistribution}; degree::Int=15, m::Int=25)
+    pearson_match(R_x::AbstractMatrix{Float64}, dists::Vector{<:UnivariateDistribution}; kwargs...)
 
-Computes the pairwise Gaussian copula correlation matrix `R_z` corresponding to a target
-Pearson correlation matrix `R_x` for a list of marginal distributions `dists`.
+Computes the pairwise Gaussian copula correlation matrix `R_z` corresponding to a target Pearson
+correlation matrix `R_x` for a list of marginal distributions `dists`.
+
+!!! warning
+    The resulting correlation matrix may not be valid (i.e., not positive definite), and
+    therefore may not work in subsequent use. In that case, you may need to compute the
+    nearest valid correlation matrix. See the [NearestCorrelationMatrix.jl](https://github.com/adknudson/NearestCorrelationMatrix.jl)
+    package for more details.
+
+## Arguments
+
+- `R_x::AbstractMatrix{Float64}`: Target `N × N` Pearson correlation matrix.
+- `dists::Vector{<:UnivariateDistribution}`: List of marginal distributions.
+
+## Keyword Arguments
+
+- `degree::Int`: Truncation degree for polynomial approximation (default: `default_degree(dists)`).
+- `m::Int`: Number of Gauss-Hermite integration points (default: `default_m(dists)`).
+- `maxiters::Int`: The maximum number of iterations in the polynomial root search (default: `100`).
+- `atol::Real`: The absolute tolerance used as a stopping condition in the polynomial root search (default: `1e-12`).
+- `check_variance::Bool`: Checks the requirement that marginal distributions have finite variance (default: `true`).
+  If `true`, an `ArgumentError` is thrown if any distribution has a non-finite or undefined variance.
+  Otherwise, if `false`, non-finite variances result in `NaN` values being propagated for those entries.
 """
 function pearson_match(
         R_x::AbstractMatrix{Float64},
@@ -84,49 +122,73 @@ function pearson_match(
         m::Int = default_m(dists),
         maxiters::Int = 100,
         atol::Float64 = 1.0e-12,
-        propagate_nan::Bool = false
+        check_variance::Bool = true
     )
     n_dists = length(dists)
     @assert size(R_x) == (n_dists, n_dists) "R_x must be an $(n_dists)x$(n_dists) matrix"
 
-    # Helper function to check if a pair has an exact dispatch overload
-    has_exact_match(d1::Type, d2::Type) = hasmethod(pearson_match, Tuple{Float64, d1, d2})
+    # 1. Precompute standard deviations upfront
+    stds = zeros(Float64, n_dists)
+    Threads.@threads for i in 1:n_dists
+        stds[i] = std(dists[i])
+    end
 
-    # Precompute standard deviations & polynomial expansion coefficients in parallel
+    # 2. Early error check for non-finite variances
+    if check_variance
+        invalid_indices = findall(!isfinite, stds)
+        if !isempty(invalid_indices)
+            msg = "All distributions are required to have a finite variance (check_variance=true)."
+            for idx in invalid_indices
+                msg *= "\n  Var[$(dists[idx])] = $(stds[idx]^2)"
+            end
+            throw(ArgumentError(msg))
+        end
+    end
+
+    # 3. Precompute polynomial expansion coefficients in parallel
     inv_fact = get_inv_factorials(degree)
     has_continuous = any(d -> d isa ContinuousUnivariateDistribution, dists)
     nodes, weights = has_continuous ? get_gauss_hermite(m) : (Float64[], Float64[])
 
-    stds = zeros(Float64, n_dists)
     C = Matrix{Float64}(undef, n_dists, degree)
-
     Threads.@threads for i in 1:n_dists
-        stds[i] = std(dists[i])
-        # Skip coefficient extraction if distribution is purely part of exact pairs
-        for k in 1:degree
-            C[i, k] = extract_coef(dists[i], k, nodes, weights)
+        # Only calculate coefficients if variance is finite
+        if isfinite(stds[i])
+            for k in 1:degree
+                C[i, k] = extract_coef(dists[i], k, nodes, weights)
+            end
         end
     end
 
+    # 4. Construct upper-triangle pair indices
+    has_exact_match(d1::Type, d2::Type) = hasmethod(pearson_match, Tuple{Float64, d1, d2})
     pairs = [(i, j) for i in 1:n_dists for j in (i + 1):n_dists]
+
     R_z = Matrix{Float64}(undef, n_dists, n_dists)
     for i in 1:n_dists
         R_z[i, i] = 1.0
     end
 
+    # 5. Parallel Pairwise Matching
     Threads.@threads for idx in eachindex(pairs)
         i, j = pairs[idx]
         d1, d2 = dists[i], dists[j]
         target_rho = R_x[i, j]
 
-        # 1. Fast Path: Dispatch to exact closed-form method if overload exists
+        # Handle non-finite variances when check_variance = false
+        if !isfinite(stds[i]) || !isfinite(stds[j])
+            R_z[i, j] = R_z[j, i] = NaN
+            continue
+        end
+
+        # Fast Path: Dispatch to exact closed-form method if overload exists
         if has_exact_match(typeof(d1), typeof(d2))
-            rho_z_ij = pearson_match(target_rho, d1, d2)
+            rho_z_ij = pearson_match(target_rho, d1, d2; check_variance = check_variance)
             R_z[i, j] = R_z[j, i] = rho_z_ij
             continue
         end
 
-        # 2. Slow Path: Inexact polynomial approximation & root-finding
+        # Slow Path: Inexact polynomial approximation & root-finding
         scale = 1.0 / (stds[i] * stds[j])
         poly_pos1, poly_neg1 = 0.0, 0.0
         for k in 1:degree

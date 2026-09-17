@@ -1,64 +1,61 @@
-# --- Normal - Normal ---
-# Exact relationship: ρ_z = ρ_x
+"""
+    pearson_match(rho_x::Float64, ::Normal, ::Normal)
+
+Analytical exact solution for Normal-Normal pairs: `rho_z = rho_x`.
+"""
 function pearson_match(rho_x::Float64, ::Normal, ::Normal; kwargs...)
     return clamp(rho_x, -1.0, 1.0)
 end
 
-# --- LogNormal - LogNormal ---
-# Exact relationship: ρ_x = (exp(ρ_z * σ1 * σ2) - 1) / sqrt((exp(σ1^2) - 1) * (exp(σ2^2) - 1))
+"""
+    pearson_match(rho_x::Float64, d1::LogNormal, d2::LogNormal)
+
+Analytical exact solution for LogNormal-LogNormal pairs.
+"""
 function pearson_match(rho_x::Float64, d1::LogNormal, d2::LogNormal; kwargs...)
     s1, s2 = d1.σ, d2.σ
     denom = sqrt(expm1(s1^2) * expm1(s2^2))
-
-    # Calculate admissibility bounds
     min_rho = expm1(-s1 * s2) / denom
     max_rho = expm1(s1 * s2) / denom
-
-    if rho_x <= min_rho
-        return -1.0
-    elseif rho_x >= max_rho
-        return 1.0
-    end
-
-    arg = 1.0 + rho_x * denom
-    return log(arg) / (s1 * s2)
+    rho_x <= min_rho && return -1.0
+    rho_x >= max_rho && return 1.0
+    return log(1.0 + rho_x * denom) / (s1 * s2)
 end
 
-# --- Normal - LogNormal ---
-# Exact relationship: ρ_x = ρ_z * σ / sqrt(exp(σ^2) - 1)
-function pearson_match(rho_x::Float64, d1::Normal, d2::LogNormal; kwargs...)
+"""
+    pearson_match(rho_x::Float64, d1::Normal, d2::LogNormal)
+
+Analytical exact solution for Normal-LogNormal pairs.
+"""
+function pearson_match(rho_x::Float64, ::Normal, d2::LogNormal; kwargs...)
     s = d2.σ
     factor = s / sqrt(expm1(s^2))
-
-    max_rho = factor
-    if rho_x <= -max_rho
-        return -1.0
-    elseif rho_x >= max_rho
-        return 1.0
-    end
-
+    rho_x <= -factor && return -1.0
+    rho_x >= factor && return 1.0
     return rho_x / factor
 end
 
 pearson_match(rho_x::Float64, d1::LogNormal, d2::Normal; kwargs...) = pearson_match(rho_x, d2, d1; kwargs...)
 
-# --- Uniform - Uniform ---
-# Exact relationship: ρ_x = (6 / π) * asin(ρ_z / 2) => ρ_z = 2 * sin(π * ρ_x / 6)
+"""
+    pearson_match(rho_x::Float64, ::Uniform, ::Uniform)
+
+Analytical exact solution for Uniform-Uniform pairs: `rho_z = 2 sin(π * rho_x / 6)`.
+"""
 function pearson_match(rho_x::Float64, ::Uniform, ::Uniform; kwargs...)
     rho_x_clamped = clamp(rho_x, -1.0, 1.0)
     return 2.0 * sin(pi * rho_x_clamped / 6.0)
 end
 
-# --- Normal - Uniform ---
-# Exact relationship: ρ_x = ρ_z * sqrt(3 / π) => ρ_z = ρ_x * sqrt(π / 3)
+"""
+    pearson_match(rho_x::Float64, ::Normal, ::Uniform)
+
+Analytical exact solution for Normal-Uniform pairs: `rho_z = rho_x * sqrt(π / 3)`.
+"""
 function pearson_match(rho_x::Float64, ::Normal, ::Uniform; kwargs...)
     max_rho = sqrt(3.0 / pi)
-    if rho_x <= -max_rho
-        return -1.0
-    elseif rho_x >= max_rho
-        return 1.0
-    end
-
+    rho_x <= -max_rho && return -1.0
+    rho_x >= max_rho && return 1.0
     return rho_x * sqrt(pi / 3.0)
 end
 

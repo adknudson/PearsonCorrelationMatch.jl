@@ -12,24 +12,30 @@ Pearson correlation `rho_x` between two marginal distributions `d1` and `d2`.
 
 ## Keyword Arguments
 
-- `degree::Int`: Truncation degree for polynomial approximation (default: `default_degree(d1, d2)`).
-- `m::Int`: Number of Gauss-Hermite integration points (default: `default_m(d1, d2)`).
-- `maxiters::Int`: The maximum number of iterations in the polynomial root search (default: `100`).
-- `atol::Real`: The absolute tolerance used as a stopping condition in the polynomial root search (default: `1e-12`).
-- `check_variance::Bool`: Checks the requirement that marginal distributions have finite variance (default: `true`).
+- `degree`: Truncation degree for polynomial approximation (default: `default_degree(d1, d2)`).
+- `m`: Number of Gauss-Hermite integration points (default: `default_m(d1, d2)`).
+- `maxiters`: The maximum number of iterations in the polynomial root search (default: `100`).
+- `atol`: The absolute tolerance used as a stopping condition in the polynomial root search (default: `1e-12`).
+- `check_variance`: Checks the requirement that marginal distributions have finite variance (default: `true`).
   If `true`, an error is thrown if `d1` or `d2` has non-finite or undefined variance.
   Otherwise, if `false`, non-finite variances result in `NaN` values being propagated.
 """
 function pearson_match(
-        rho_x::Float64,
+        rho_x::Real,
         d1::UnivariateDistribution,
         d2::UnivariateDistribution;
-        degree::Int = default_degree(d1, d2),
-        m::Int = default_m(d1, d2),
-        maxiters::Int = 100,
-        atol::Float64 = 1.0e-12,
+        degree::Real = default_degree(d1, d2),
+        m::Real = default_m(d1, d2),
+        maxiters::Real = 100,
+        atol::Real = 1.0e-12,
         check_variance::Bool = true
     )
+    rho_x = float(rho_x)
+    degree = Int(degree)
+    m = Int(m)
+    maxiters = Int(maxiters)
+    atol = float(atol)
+
     # Generate quadrature rules if at least one variable is continuous
     nodes, weights = Float64[], Float64[]
     if d1 isa ContinuousUnivariateDistribution || d2 isa ContinuousUnivariateDistribution
@@ -84,7 +90,7 @@ function pearson_match(
 end
 
 """
-    pearson_match(R_x::AbstractMatrix{Float64}, dists::Vector{<:UnivariateDistribution}; kwargs...)
+    pearson_match(R_x, dists; kwargs...)
 
 Computes the pairwise Gaussian copula correlation matrix `R_z` corresponding to a target Pearson
 correlation matrix `R_x` for a list of marginal distributions `dists`.
@@ -97,28 +103,34 @@ correlation matrix `R_x` for a list of marginal distributions `dists`.
 
 ## Arguments
 
-- `R_x::AbstractMatrix{Float64}`: Target `N × N` Pearson correlation matrix.
-- `dists::Vector{<:UnivariateDistribution}`: List of marginal distributions.
+- `R_x`: Target `N × N` Pearson correlation matrix.
+- `dists`: List of marginal distributions.
 
 ## Keyword Arguments
 
-- `degree::Int`: Truncation degree for polynomial approximation (default: `default_degree(dists)`).
-- `m::Int`: Number of Gauss-Hermite integration points (default: `default_m(dists)`).
-- `maxiters::Int`: The maximum number of iterations in the polynomial root search (default: `100`).
-- `atol::Real`: The absolute tolerance used as a stopping condition in the polynomial root search (default: `1e-12`).
-- `check_variance::Bool`: Checks the requirement that marginal distributions have finite variance (default: `true`).
+- `degree`: Truncation degree for polynomial approximation (default: `default_degree(dists)`).
+- `m`: Number of Gauss-Hermite integration points (default: `default_m(dists)`).
+- `maxiters`: The maximum number of iterations in the polynomial root search (default: `100`).
+- `atol`: The absolute tolerance used as a stopping condition in the polynomial root search (default: `1e-12`).
+- `check_variance`: Checks the requirement that marginal distributions have finite variance (default: `true`).
   If `true`, an `ArgumentError` is thrown if any distribution has a non-finite or undefined variance.
   Otherwise, if `false`, non-finite variances result in `NaN` values being propagated for those entries.
 """
 function pearson_match(
-        R_x::AbstractMatrix{Float64},
-        dists::Vector{<:UnivariateDistribution};
-        degree::Int = default_degree(dists),
-        m::Int = default_m(dists),
-        maxiters::Int = 100,
-        atol::Float64 = 1.0e-12,
+        R_x::AbstractMatrix{<:Real},
+        dists;
+        degree::Real = default_degree(dists),
+        m::Real = default_m(dists),
+        maxiters::Real = 100,
+        atol::Real = 1.0e-12,
         check_variance::Bool = true
     )
+    R_x = float.(R_x)
+    degree = Int(degree)
+    m = Int(m)
+    maxiters = Int(maxiters)
+    atol = float(atol)
+
     n_dists = length(dists)
     @assert size(R_x) == (n_dists, n_dists) "R_x must be an $(n_dists)x$(n_dists) matrix"
 
@@ -156,10 +168,10 @@ function pearson_match(
     end
 
     # 4. Construct upper-triangle pair indices
-    has_exact_match(d1::Type, d2::Type) = hasmethod(pearson_match, Tuple{Float64, d1, d2})
+    has_exact_match(d1::Type, d2::Type) = hasmethod(pearson_match, Tuple{Real, d1, d2})
     pairs = [(i, j) for i in 1:n_dists for j in (i + 1):n_dists]
 
-    R_z = Matrix{Float64}(undef, n_dists, n_dists)
+    R_z = similar(R_x)
     for i in 1:n_dists
         R_z[i, i] = 1.0
     end

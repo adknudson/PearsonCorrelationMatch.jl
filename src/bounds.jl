@@ -1,29 +1,32 @@
 """
-    pearson_bounds(d1::UnivariateDistribution, d2::UnivariateDistribution; kwargs...)
+    pearson_bounds(d1, d2; kwargs...)
 
-Computes the theoretical lower and upper admissible bounds \$[\\underline{\\rho_x}, \\overline{\\rho_x}]\$
-for the Pearson correlation coefficient between two marginal distributions.
+Computes the theoretical lower and upper admissible bounds for the Pearson correlation
+coefficient between two marginal distributions.
 
 ## Arguments
 
-- `d1::UnivariateDistribution`: First marginal distribution.
-- `d2::UnivariateDistribution`: Second marginal distribution.
+- `d1`: First marginal distribution.
+- `d2`: Second marginal distribution.
 
 ## Keyword Arguments
 
-- `degree::Int`: Polynomial truncation degree (default: `default_degree(d1, d2)`).
-- `m::Int`: Gauss-Hermite integration points (default: `default_m(d1, d2)`).
-- `check_variance::Bool`: Checks the requirement that marginal distributions have finite variance (default: `true`).
+- `degree`: Polynomial truncation degree (default: `default_degree(d1, d2)`).
+- `m`: Gauss-Hermite integration points (default: `default_m(d1, d2)`).
+- `check_variance`: Checks the requirement that marginal distributions have finite variance (default: `true`).
   If `true`, an error is thrown if `d1` or `d2` has non-finite or undefined variance.
   Otherwise, if `false`, non-finite variances result in `NaN` values being propagated.
 """
 function pearson_bounds(
         d1::UnivariateDistribution,
         d2::UnivariateDistribution;
-        degree::Int = 20,
-        m::Int = 40,
+        degree::Real = 20,
+        m::Real = 40,
         check_variance::Bool = true
     )
+    degree = Int(degree)
+    m = Int(m)
+
     # Generate quadrature rules if at least one variable is continuous
     nodes, weights = Float64[], Float64[]
     if d1 isa ContinuousUnivariateDistribution || d2 isa ContinuousUnivariateDistribution
@@ -70,29 +73,31 @@ function pearson_bounds(
 end
 
 """
-    pearson_bounds(dists::Vector{<:UnivariateDistribution}; kwargs...)
+    pearson_bounds(dists; kwargs...)
 
 Computes the pairwise theoretical Pearson correlation bounds `(lower, upper)` for a list of
 marginal distributions `dists`.
 
 ## Arguments
 
-- `dists::Vector{<:UnivariateDistribution}`: List of marginal distributions.
+- `dists`: List of marginal distributions.
 
 ## Keyword Arguments
 
-- `degree::Int`: Truncation degree for polynomial approximation (default: `default_degree(dists)`).
-- `m::Int`: Number of Gauss-Hermite integration points (default: `default_m(dists)`).
-- `check_variance::Bool`: Checks the requirement that marginal distributions have finite variance (default: `true`).
+- `degree`: Truncation degree for polynomial approximation (default: `default_degree(dists)`).
+- `m`: Number of Gauss-Hermite integration points (default: `default_m(dists)`).
+- `check_variance`: Checks the requirement that marginal distributions have finite variance (default: `true`).
   If `true`, an `ArgumentError` is thrown if any distribution has a non-finite or undefined variance.
   Otherwise, if `false`, non-finite variances result in `NaN` matrix entries.
 """
 function pearson_bounds(
-        dists::Vector{<:UnivariateDistribution};
-        degree::Int = default_degree(dists),
-        m::Int = default_m(dists),
+        dists;
+        degree::Real = default_degree(dists),
+        m::Real = default_m(dists),
         check_variance::Bool = true
     )
+    degree = Int(degree)
+    m = Int(m)
     d = length(dists)
 
     stds = zeros(Float64, d)

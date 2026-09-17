@@ -1,9 +1,6 @@
-using Logging
 using BenchmarkTools
 using Distributions
 using PearsonCorrelationMatch
-
-Logging.disable_logging(Logging.Warn)
 
 const SUITE = BenchmarkGroup()
 

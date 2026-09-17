@@ -63,13 +63,8 @@ function pearson_match(
     G_neg1 = eval_poly(c, -1.0)
     G_pos1 = eval_poly(c, 1.0)
 
-    if rho_x < G_neg1
-        @warn "Target ρ_x ($rho_x) is below the admissible bound ($G_neg1). Returning -1.0."
-        return -1.0
-    elseif rho_x > G_pos1
-        @warn "Target ρ_x ($rho_x) is above the admissible bound ($G_pos1). Returning 1.0."
-        return 1.0
-    end
+    rho_x < G_neg1 && return -1.0
+    rho_x > G_pos1 && return 1.0
 
     # Bisection search to find the root on [-1, 1]
     low, high = -1.0, 1.0

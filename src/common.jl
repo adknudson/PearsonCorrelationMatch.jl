@@ -1,190 +1,161 @@
-const _sqrt2::Float64 = sqrt(2.0)
-const _invsqrtπ::Float64 = inv(sqrt(π))
-
 """
-    _generate_coefs(dist, n, m)
+    get_inv_factorials(max_k)
 
-Equation (25) of the reference paper.
+Retrieves precomputed 1/k! values up to degree `max_k`.
+Dynamically extends the global vector in a thread-safe manner if max_k > current length.
 """
-function _generate_coefs(F::UnivariateDistribution, n::Int, m::Int)
-    t, w = gausshermite(m)
-    t *= _sqrt2
-
-    u = normcdf.(t)
-
-    # If u[i] is 0 or 1, then quantile(F, u[i]) has the potential to be ±∞
-    # Apply a small correction here to ensure that the values are finite
-    clamp!(u, 1.0e-15, 1.0 - 1.0e-15)
-
-    X = quantile.(F, u)
-
-    a = zeros(Float64, n + 1)
-    for i in eachindex(a)
-        k = i - 1
-        S = sum(w .* _hermite.(t, k) .* X)
-        @inbounds a[i] = _invsqrtπ * S / factorial(big(k))
+function get_inv_factorials(max_k::Int)
+    if max_k > length(GLOBAL_INV_FACTORIALS)
+        lock(CACHE_LOCK) do
+            current_len = length(GLOBAL_INV_FACTORIALS)
+            if max_k > current_len
+                f = factorial(Float64(current_len))
+                for k in (current_len + 1):max_k
+                    f *= k
+                    push!(GLOBAL_INV_FACTORIALS, 1.0 / f)
+                end
+            end
+        end
     end
-
-    return a
+    return @view GLOBAL_INV_FACTORIALS[1:max_k]
 end
 
-"""
-    _Gn0_discrete(A, B, a, b, invs1s2, n::Int)
-
-
-Equation (41) of the reference paper.
-"""
-function _Gn0_discrete(A, B, a, b, invs1s2, n::Int)
-    n == 0 && return zero(Float64)
-
-    M = length(A)
-    N = length(B)
-
-    accu = zero(Float64)
-
-    for r in 1:M, s in 1:N
-        r00 = _hermite_normpdf(a[r], n - 1) * _hermite_normpdf(b[s], n - 1)
-        r10 = _hermite_normpdf(a[r + 1], n - 1) * _hermite_normpdf(b[s], n - 1)
-        r01 = _hermite_normpdf(a[r], n - 1) * _hermite_normpdf(b[s + 1], n - 1)
-        r11 = _hermite_normpdf(a[r + 1], n - 1) * _hermite_normpdf(b[s + 1], n - 1)
-
-        accu += A[r] * B[s] * (r11 + r00 - r01 - r10)
-    end
-
-    return accu * invs1s2
-end
 
 """
-    _Gn0_mixed(A, a, F, invs1s2, n::Int, m::Int)
+    probabilist_hermite(k, x)
 
-Equation (49) of the reference paper.
+Evaluates the `k`-th order probabilist's Hermite polynomial at `x`.
 """
-function _Gn0_mixed(A, a, F, invs1s2, n::Int, m::Int)
-    n == 0 && return zero(Float64)
-
-    M = length(A)
-
-    accu = zero(Float64)
-
-    for r in 1:M
-        accu += A[r] * (_hermite_normpdf(a[r + 1], n - 1) - _hermite_normpdf(a[r], n - 1))
-    end
-
-    t, w = gausshermite(m)
-    t *= _sqrt2
-    u = normcdf.(t)
-
-    # If u[i] is 0 or 1, then quantile(F, u[i]) has the potential to be ±∞
-    # Apply a small correction here to ensure that the values are finite
-    clamp!(u, 1.0e-15, 1.0 - 1.0e-15)
-
-    X = quantile.(F, u)
-    any(isinf, X) && error("Values must be real and finite")
-
-    S = zero(Float64)
-
-    for k in eachindex(t)
-        S += w[k] * _hermite(t[k], n) * X[k]
-    end
-
-    S *= _invsqrtπ
-
-    return -invs1s2 * accu * S
-end
-
-"""
-    _hermite(x, k)
-
-The "probabilist's" Hermite polynomial of degree ``k``.
-"""
-function _hermite(x::Float64, k::Int)
-    k < 0 && throw(ArgumentError("'k' must be a non-negative integer"))
+function probabilist_hermite(k::Int, x::Float64)
+    k < 0 && return 0.0
     k == 0 && return 1.0
     k == 1 && return x
 
-    Hk = x
-    Hkp1 = zero(x)
-    Hkm1 = one(x)
+    h_prev2 = 1.0
+    h_prev1 = x
+    h_curr = x
+    for i in 2:k
+        h_curr = x * h_prev1 - (i - 1) * h_prev2
+        h_prev2 = h_prev1
+        h_prev1 = h_curr
+    end
+    return h_curr
+end
 
-    for j in 2:k
-        Hkp1 = x * Hk - (j - 1) * Hkm1
-        Hkm1, Hk = Hk, Hkp1
+"""
+    gauss_hermite_prob(m)
+
+Generates m-point Gauss-Hermite nodes and weights for integrating against
+the standard normal PDF: ∫ f(x)ϕ(x)dx ≈ Σ w_i f(t_i).
+Uses the Golub-Welsch algorithm.
+"""
+function gauss_hermite_prob(m::Int)
+    # Jacobi matrix for normalized probabilist's Hermite polynomials
+    J = SymTridiagonal(zeros(m), sqrt.(1:(m - 1)))
+    vals, vecs = eigen(J)
+    nodes = vals
+    weights = vecs[1, :] .^ 2 # First row elements squared represent weights
+    return nodes, weights
+end
+
+"""
+    get_gauss_hermite(m)
+
+Retrieves or computes Gauss-Hermite nodes and weights for m points.
+Dynamically updates the global dictionary in a thread-safe manner.
+"""
+function get_gauss_hermite(m::Int)
+    # Fast path: Read without lock if already present
+    if haskey(GLOBAL_GH_CACHE, m)
+        return GLOBAL_GH_CACHE[m]
     end
 
-    return Hkp1
+    # Slow path: Compute and cache under lock
+    return lock(CACHE_LOCK) do
+        return get!(GLOBAL_GH_CACHE, m) do
+            gauss_hermite_prob(m)
+        end
+    end
 end
 
-_hermite(x, n) = _hermite(convert(Float64, x), convert(Int, n))
 
 """
-    He(x, k) * normpdf(x)
-"""
-_hermite_normpdf(x::Float64, k::Int) = isinf(x) ? zero(x) : _hermite(x, k) * normpdf(x)
-_hermite_normpdf(x, k) = _hermite_normpdf(convert(Float64, x), convert(Int, k))
+    extract_coef(d::ContinuousUnivariateDistribution, k::Int, nodes::Vector{Float64}, weights::Vector{Float64})
+    extract_coef(d::DiscreteUnivariateDistribution, k::Int, ::Vector{Float64}, ::Vector{Float64})
 
-"""
-    _is_real(x::Complex)
+Computes the `k`-th Hermite polynomial expansion coefficient `C_i(k)` for marginal distribution `d`.
 
-Check if a number is real within a given tolerance.
-"""
-_is_real(x::Complex{T}) where {T} = abs(imag(x)) < sqrt(eps(T))
+## Arguments
+- `d::UnivariateDistribution`: Marginal distribution object.
+- `k::Int`: Polynomial expansion order (`k ≥ 1`).
+- `nodes::Vector{Float64}`: Gauss-Hermite integration nodes (used only for continuous distributions).
+- `weights::Vector{Float64}`: Gauss-Hermite integration weights (used only for continuous distributions).
 
+## Details
+- For continuous distributions, uses Gauss-Hermite quadrature.
+- For discrete distributions, evaluates exact piecewise boundary differences across cumulative probabilities.
 """
-    _real_roots(coeffs)
+function extract_coef end
 
-Find the real and unique roots of the polynomial coefficients.
-
-- `coeffs`: A vector of coefficients in ascending order of degree.
-"""
-function _real_roots(coeffs)
-    complex_roots = roots(coeffs)
-    filter!(_is_real, complex_roots)
-    xs = real.(complex_roots)
-    return unique!(xs)
+function extract_coef(d::ContinuousUnivariateDistribution, k::Int, nodes::Vector{Float64}, weights::Vector{Float64})
+    val = 0.0
+    for i in eachindex(nodes)
+        t = nodes[i]
+        w = weights[i]
+        # F^{-1}(Φ(t))
+        p = cdf(Normal(), t)
+        # Clamp to avoid domain errors at extreme float precision
+        p = clamp(p, 1.0e-15, 1.0 - 1.0e-15)
+        x = quantile(d, p)
+        val += w * probabilist_hermite(k, t) * x
+    end
+    return val
 end
 
-"""
-    _feasible_roots(coeffs)
+function extract_coef(d::DiscreteUnivariateDistribution, k::Int, ::Vector{Float64}, ::Vector{Float64})
+    lb = isinf(minimum(d)) ? floor(Int, quantile(d, 1.0e-10)) : minimum(d)
+    ub = isinf(maximum(d)) ? ceil(Int, quantile(d, 1.0 - 1.0e-10)) : maximum(d)
+    sup = lb:ub
+    M = length(sup)
+    val = 0.0
 
-Find all real roots of the polynomial that are in the interval ``[-1, 1]``.
-
-- `coeffs`: a vector of coefficients in ascending order of degree.
-"""
-function _feasible_roots(coeffs)
-    xs = _real_roots(coeffs)
-    return filter!(x -> abs(x) ≤ 1.0 + sqrt(eps()), xs)
-end
-
-"""
-    _nearest_root(target, roots)
-
-Find the root closest to the target value.
-"""
-function _nearest_root(target, roots)
-    y = 0
-    m = Inf
-
-    for x0 in roots
-        f = abs(x0 - target)
-        if f < m
-            m = f
-            y = x0
+    # Evaluates H_{k-1}(α_r) * ϕ(α_r)
+    function term(r::Int)
+        if r == 0
+            return 0.0
+        elseif r == M && maximum(d) == sup[M]
+            return 0.0 # Φ^{-1}(1.0) = ∞, ϕ(∞) = 0
+        else
+            A_r = sup[r]
+            p = cdf(d, A_r)
+            p >= 1.0 && return 0.0
+            alpha_r = quantile(Normal(), p)
+            return probabilist_hermite(k - 1, alpha_r) * pdf(Normal(), alpha_r)
         end
     end
 
-    return y
+    t_prev = term(0)
+    for r in 1:M
+        t_curr = term(r)
+        delta = t_curr - t_prev
+        val -= sup[r] * delta
+        t_prev = t_curr
+    end
+
+    return val
 end
 
 """
-    _best_root(p, xs)
+    eval_poly(coefs, z)
 
-Consider the feasible roots and return a value.
-
-- `p`: the target correlation
-- `roots`: a vector of feasible roots
+Evaluates the polynomial at `z` given its coefficients.
 """
-function _best_root(p, roots)
-    length(roots) == 1 && return clamp(first(roots), -1, 1)
-    length(roots) > 1 && return _nearest_root(p, roots)
-    return p < 0 ? nextfloat(-one(Float64)) : prevfloat(one(Float64))
+function eval_poly(coefs::Vector{Float64}, z::Float64)
+    val = 0.0
+    z_pow = 1.0
+    for i in 1:length(coefs)
+        z_pow *= z
+        val += coefs[i] * z_pow
+    end
+    return val
 end

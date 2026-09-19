@@ -150,12 +150,12 @@ end
 
 Evaluates the polynomial at `z` given its coefficients.
 """
-function eval_poly(coefs::Vector{Float64}, z::Float64)
+function eval_poly(coefs::Vector{Float64}, z::Real)
     val = 0.0
     z_pow = 1.0
-    for i in 1:length(coefs)
+    for c_i in coefs
         z_pow *= z
-        val += coefs[i] * z_pow
+        val += c_i * z_pow
     end
     return val
 end

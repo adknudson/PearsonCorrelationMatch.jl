@@ -4,6 +4,7 @@ using Distributions
 using LinearAlgebra
 
 export pearson_match, pearson_bounds
+export BivariateModel
 
 # Precompute 1/k! up to a reasonable default
 const GLOBAL_INV_FACTORIALS = Float64[1.0 / Float64(factorial(big(k))) for k in 1:60]
@@ -16,6 +17,7 @@ const CACHE_LOCK = ReentrantLock()
 
 include("common.jl")
 include("defaults.jl")
+include("bivariate_model.jl")
 include("match.jl")
 include("exact_match.jl")
 include("bounds.jl")

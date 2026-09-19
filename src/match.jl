@@ -41,8 +41,14 @@ function pearson_match(
             )
         )
     end
-    G = BivariateModel(d1, d2; Int(degree), Int(m))
-    return pearson_match(float(rho_x), G; Int(maxiters), float(atol))
+
+    degree = Int(degree)
+    m = Int(m)
+    G = BivariateModel(d1, d2; degree, m)
+
+    maxiters = Int(maxiters)
+    atol = float(atol)
+    return pearson_match(float(rho_x), G; maxiters, atol)
 end
 
 """

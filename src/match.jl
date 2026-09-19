@@ -30,18 +30,6 @@ function pearson_match(
         atol::Real = 1.0e-12,
         check_variance::Bool = true
     )
-    rho_x = float(rho_x)
-    degree = Int(degree)
-    m = Int(m)
-    maxiters = Int(maxiters)
-    atol = float(atol)
-
-    # Generate quadrature rules if at least one variable is continuous
-    nodes, weights = Float64[], Float64[]
-    if d1 isa ContinuousUnivariateDistribution || d2 isa ContinuousUnivariateDistribution
-        nodes, weights = get_gauss_hermite(m)
-    end
-
     std1, std2 = std(d1), std(d2)
     if !isfinite(std1) || !isfinite(std2)
         check_variance || return NaN
@@ -54,39 +42,13 @@ function pearson_match(
         )
     end
 
-    scale = 1.0 / (std1 * std2)
-    inv_fact = get_inv_factorials(degree)
+    degree = Int(degree)
+    m = Int(m)
+    G = BivariateModel(d1, d2; degree, m)
 
-    # Precompute coefficients C_k
-    c = zeros(Float64, degree)
-    for k in 1:degree
-        coef1 = extract_coef(d1, k, nodes, weights)
-        coef2 = extract_coef(d2, k, nodes, weights)
-        c[k] = coef1 * coef2 * inv_fact[k] * scale
-    end
-
-    # Check physical admissibility bounds
-    G_neg1 = eval_poly(c, -1.0)
-    G_pos1 = eval_poly(c, 1.0)
-
-    rho_x < G_neg1 && return -1.0
-    rho_x > G_pos1 && return 1.0
-
-    # Bisection search to find the root on [-1, 1]
-    low, high = -1.0, 1.0
-    for _ in 1:maxiters
-        mid = (low + high) * 0.5
-        if eval_poly(c, mid) < rho_x
-            low = mid
-        else
-            high = mid
-        end
-        if high - low < atol
-            break
-        end
-    end
-
-    return (low + high) * 0.5
+    maxiters = Int(maxiters)
+    atol = float(atol)
+    return pearson_match(float(rho_x), G; maxiters, atol)
 end
 
 """

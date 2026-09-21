@@ -59,7 +59,7 @@ correlation matrix `R_x` for a list of marginal distributions `dists`.
 
 !!! warning
     The resulting correlation matrix may not be valid (i.e., not positive definite), and
-    therefore may not work in subsequent use. In that case, you may need to compute the
+    therefore may not work in subsequent applications. In that case, you may need to compute the
     nearest valid correlation matrix. See the [NearestCorrelationMatrix.jl](https://github.com/adknudson/NearestCorrelationMatrix.jl)
     package for more details.
 

@@ -1,3 +1,12 @@
+# Precompute 1/k! up to a reasonable default
+const GLOBAL_INV_FACTORIALS = [Float64(inv(factorial(big(k)))) for k in 1:60]
+
+# Cache for Gauss-Hermite quadrature rules: m => (nodes, weights)
+const GLOBAL_GH_CACHE = Dict{Int, Tuple{Vector{Float64}, Vector{Float64}}}()
+
+# Lock to ensure thread safety when expanding caches at runtime
+const CACHE_LOCK = ReentrantLock()
+
 """
     get_inv_factorials(max_k)
 
@@ -9,10 +18,10 @@ function get_inv_factorials(max_k::Int)
         lock(CACHE_LOCK) do
             current_len = length(GLOBAL_INV_FACTORIALS)
             if max_k > current_len
-                f = factorial(Float64(current_len))
+                f = last(GLOBAL_INV_FACTORIALS)
                 for k in (current_len + 1):max_k
-                    f *= k
-                    push!(GLOBAL_INV_FACTORIALS, 1.0 / f)
+                    f *= inv(big(k))
+                    push!(GLOBAL_INV_FACTORIALS, f)
                 end
             end
         end
@@ -150,12 +159,12 @@ end
 
 Evaluates the polynomial at `z` given its coefficients.
 """
-function eval_poly(coefs::Vector{Float64}, z::Float64)
+function eval_poly(coefs::Vector{Float64}, z::Real)
     val = 0.0
     z_pow = 1.0
-    for i in 1:length(coefs)
+    for c_i in coefs
         z_pow *= z
-        val += coefs[i] * z_pow
+        val += c_i * z_pow
     end
     return val
 end
